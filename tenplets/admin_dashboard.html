@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        /* Estilos para a mensagem Toast (notificação flutuante) */
+        #message-toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        #message-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .action-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+            white-space: nowrap; /* Evita que o texto quebre */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Toast Message Container -->
+    <div id="message-toast" class="max-w-xs shadow-lg rounded-xl pointer-events-auto ring-1 ring-black ring-opacity-5">
+        <div class="rounded-xl bg-white p-4">
+            <p id="toast-text" class="text-sm font-medium"></p>
+        </div>
+    </div>
+
+    <header class="flex justify-between items-center mb-8 border-b pb-4">
+        <h1 class="text-3xl font-bold text-gray-800">Painel Super Admin</h1>
+        <a href="{{ url_for('logout_login') }}" class="action-button bg-red-500 hover:bg-red-600 text-white shadow-md">
+            Sair
+        </a>
+    </header>
+
+    <!-- Cadastro de Novo Professor -->
+    <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h2 class="text-2xl font-semibold text-blue-600 mb-4 border-b pb-2">Cadastrar Novo Professor</h2>
+        
+        <form id="cadastroProfessorForm" class="space-y-4">
+            <div>
+                <label for="email_professor_cadastro" class="block text-sm font-medium text-gray-700">E-mail do Professor</label>
+                <input type="email" id="email_professor_cadastro" required 
+                       class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="novo.professor@escola.com">
+            </div>
+            <div>
+                <label for="senha_professor_cadastro" class="block text-sm font-medium text-gray-700">Senha (Opcional - será gerada se vazio)</label>
+                <input type="text" id="senha_professor_cadastro" 
+                       class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="Deixe vazio para senha automática">
+            </div>
+            <button type="submit" id="cadastrarProfessorBtn" class="action-button bg-green-500 hover:bg-green-600 text-white w-full">
+                Cadastrar Professor
+            </button>
+        </form>
+
+        <!-- Container para mensagem de sucesso/erro e senha gerada -->
+        <div id="cadastroProfessorMessage" class="mt-4 p-4 rounded-lg hidden"></div>
+    </section>
+
+    <!-- Cadastro de Novo Aluno -->
+    <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+        <h2 class="text-2xl font-semibold text-blue-600 mb-4 border-b pb-2">Cadastrar Novo Aluno</h2>
+        
+        <form id="cadastroAlunoForm" class="space-y-4">
+            <div>
+                <label for="email_aluno_cadastro" class="block text-sm font-medium text-gray-700">E-mail do Aluno</label>
+                <input type="email" id="email_aluno_cadastro" required 
+                       class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="novo.aluno@escola.com">
+            </div>
+            <div>
+                <label for="senha_aluno_cadastro" class="block text-sm font-medium text-gray-700">Senha (Opcional - será gerada se vazio)</label>
+                <input type="text" id="senha_aluno_cadastro" 
+                       class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="Deixe vazio para senha automática">
+            </div>
+            <div>
+                <label for="turma_aluno_cadastro" class="block text-sm font-medium text-gray-700">Turma</label>
+                <input type="text" id="turma_aluno_cadastro" required
+                       class="mt-1 block w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="Ex: 5A">
+            </div>
+            <button type="submit" id="cadastrarAlunoBtn" class="action-button bg-purple-500 hover:bg-purple-600 text-white w-full">
+                Cadastrar Aluno
+            </button>
+        </form>
+
+        <!-- Container para mensagem de sucesso/erro e senha gerada -->
+        <div id="cadastroAlunoMessage" class="mt-4 p-4 rounded-lg hidden"></div>
+    </section>
+
+    <!-- Tabela de Professores e Gerenciamento -->
+    <section class="bg-white p-6 rounded-xl shadow-lg mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-2">
+            <h2 class="text-2xl font-semibold text-blue-600 mb-2 md:mb-0">Gerenciar Licenças de Professores</h2>
+            <input type="text" id="searchBarProfessor" onkeyup="filterTable('professor')" placeholder="Pesquisar Professor por email..." 
+                   class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full md:max-w-xs">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-mail</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status da Licença</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expira Em</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="professoresTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Conteúdo preenchido via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+    
+    <!-- Tabela de Alunos e Gerenciamento -->
+    <section class="bg-white p-6 rounded-xl shadow-lg">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-2">
+            <h2 class="text-2xl font-semibold text-blue-600 mb-2 md:mb-0">Gerenciar Alunos Cadastrados</h2>
+            <input type="text" id="searchBarAluno" onkeyup="filterTable('aluno')" placeholder="Pesquisar Aluno por email..." 
+                   class="p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full md:max-w-xs">
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-mail</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Turma</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Professor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="alunosTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Conteúdo preenchido via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <script>
+        // Dados iniciais (passados do Flask)
+        const professoresData = JSON.parse({{ professores_dados | tojson }});
+        const alunosData = JSON.parse({{ alunos_dados | tojson }});
+        const professorEmailPadrao = "{{ PROFESSOR_EMAIL_PADRAO }}";
+        // Cria um objeto Date seguro para comparação (hoje às 00:00:00)
+        const hoje = new Date("{{ hoje }}"); 
+
+        // Elementos DOM
+        const professoresTableBody = document.getElementById('professoresTableBody');
+        const alunosTableBody = document.getElementById('alunosTableBody');
+        const searchBarProfessor = document.getElementById('searchBarProfessor');
+        const searchBarAluno = document.getElementById('searchBarAluno');
+        
+        // Formulários e Mensagens de Professor
+        const cadastroProfessorForm = document.getElementById('cadastroProfessorForm');
+        const cadastroProfessorMessage = document.getElementById('cadastroProfessorMessage');
+        
+        // Formulários e Mensagens de Aluno
+        const cadastroAlunoForm = document.getElementById('cadastroAlunoForm');
+        const cadastroAlunoMessage = document.getElementById('cadastroAlunoMessage');
+
+        // --- Funções de Utilidade ---
+
+        /** Exibe uma mensagem de notificação (Toast) */
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('message-toast');
+            const toastText = document.getElementById('toast-text');
+            
+            // Define o texto e limpa classes anteriores
+            toastText.textContent = message;
+            toast.className = 'max-w-xs shadow-lg rounded-xl pointer-events-auto ring-1 ring-black ring-opacity-5';
+            
+            // Adiciona classes de cor baseadas no tipo
+            if (type === 'success') {
+                toast.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                toast.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                 toast.classList.add('bg-gray-100', 'text-gray-800');
+            }
+            
+            // Mostra o Toast
+            toast.classList.add('show');
+            
+            // Esconde o Toast após 5 segundos
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        /** Formata a data e retorna o status da licença */
+        function getStatusAndExpiry(expiracaoStr) {
+            // Garante que a comparação é feita corretamente no fuso horário
+            const expiraEm = new Date(expiracaoStr + 'T00:00:00'); 
+            const diffDias = Math.ceil((expiraEm - hoje) / (1000 * 60 * 60 * 24));
+            
+            let status = 'Ativa';
+            let statusColor = 'bg-green-100 text-green-800';
+
+            if (diffDias < 0) {
+                status = 'Expirada';
+                statusColor = 'bg-red-100 text-red-800';
+            } else if (diffDias <= 30) {
+                status = `Expira em ${diffDias} dias`;
+                statusColor = 'bg-yellow-100 text-yellow-800';
+            }
+
+            return { status, statusColor, expiraEm: expiracaoStr };
+        }
+
+        /** Função genérica para chamadas API (POST com JSON) */
+        async function apiFetch(endpoint, data) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Erro na API:", error);
+                showToast(`Falha: ${error.message}`, 'error');
+                return { success: false, message: error.message };
+            }
+        }
+
+        /**
+         * Copia um texto para a área de transferência.
+         * @param {string} textToCopy O texto a ser copiado.
+         */
+        function copyTextToClipboard(textToCopy) {
+            // Cria um elemento de texto temporário
+            const tempInput = document.createElement('textarea');
+            tempInput.value = textToCopy;
+            // Define a posição para fora da tela
+            tempInput.style.position = 'fixed';
+            tempInput.style.left = '-9999px'; 
+            document.body.appendChild(tempInput);
+
+            // Seleciona o texto e executa o comando de cópia
+            tempInput.select();
+            document.execCommand('copy');
+            
+            // Remove o elemento temporário
+            document.body.removeChild(tempInput);
+
+            showToast('Senha copiada para a área de transferência!', 'success');
+        }
+
+
+        // --- Funções de Ação e Renderização ---
+
+        /** Renderiza a tabela de professores */
+        function renderProfessoresTable(data = professoresData) {
+            professoresTableBody.innerHTML = '';
+            
+            const sortedEmails = Object.keys(data).sort((a, b) => {
+                // Coloca o professor padrão no topo
+                if (a === professorEmailPadrao) return -1;
+                if (b === professorEmailPadrao) return 1;
+                // Ordena os outros por email
+                return a.localeCompare(b); 
+            });
+            
+            sortedEmails.forEach(email => {
+                const professor = data[email];
+                const { status, statusColor, expiraEm } = getStatusAndExpiry(professor.expira_em);
+                
+                const row = professoresTableBody.insertRow();
+                row.className = 'hover:bg-gray-50 transition duration-150';
+                row.setAttribute('data-email', email); // Para filtragem
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${email}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${status}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${expiraEm}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium flex flex-wrap gap-2">
+                        <!-- Botão de Troca de Senha -->
+                        <button onclick="handleResetPasswordProfessor('${email}')" 
+                                class="action-button bg-yellow-400 hover:bg-yellow-500 text-gray-800 text-xs shadow-md">
+                            Trocar Senha
+                        </button>
+                        <!-- Botão de Renovação -->
+                        <button onclick="handleRenovar('${email}')" 
+                                class="action-button bg-blue-500 hover:bg-blue-600 text-white text-xs shadow-md">
+                            Renovar Licença
+                        </button>
+                        <!-- Botão de Exclusão -->
+                        ${email !== professorEmailPadrao ? `
+                        <button onclick="handleExcluirProfessor('${email}')" 
+                                class="action-button bg-red-500 hover:bg-red-600 text-white text-xs shadow-md">
+                            Excluir
+                        </button>
+                        ` : ''}
+                    </td>
+                `;
+            });
+        }
+        
+        /** Renderiza a tabela de alunos */
+        function renderAlunosTable(data = alunosData) {
+            alunosTableBody.innerHTML = '';
+            
+            const sortedEmails = Object.keys(data).sort((a, b) => a.localeCompare(b));
+            
+            sortedEmails.forEach(email => {
+                const aluno = data[email];
+                
+                const row = alunosTableBody.insertRow();
+                row.className = 'hover:bg-gray-50 transition duration-150';
+                row.setAttribute('data-email', email); // Para filtragem
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${email}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${aluno.turma}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${aluno.professor || 'Não Atribuído'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium flex flex-wrap gap-2">
+                        <!-- Botão de Troca de Senha -->
+                        <button onclick="handleResetPasswordAluno('${email}')" 
+                                class="action-button bg-yellow-400 hover:bg-yellow-500 text-gray-800 text-xs shadow-md">
+                            Trocar Senha
+                        </button>
+                        <!-- Botão de Exclusão -->
+                        <button onclick="handleExcluirAluno('${email}')" 
+                                class="action-button bg-red-500 hover:bg-red-600 text-white text-xs shadow-md">
+                            Excluir
+                        </button>
+                    </td>
+                `;
+            });
+        }
+        
+        /** Função de Troca de Senha para Professor */
+        async function handleResetPasswordProfessor(email) {
+            // O uso de prompt é mantido para simplicidade em apps de administração
+            const novaSenha = prompt(`Digite a NOVA senha para o professor ${email}:`);
+
+            if (!novaSenha) {
+                showToast("Troca de senha cancelada ou senha vazia.", "error");
+                return;
+            }
+            if (novaSenha.length < 6) {
+                 showToast("A senha deve ter pelo menos 6 caracteres.", "error");
+                return;
+            }
+
+            const result = await apiFetch('/api/trocar_senha_professor', {
+                email: email,
+                nova_senha: novaSenha
+            });
+
+            if (result.success) {
+                showToast(result.message, 'success');
+            }
+        }
+        
+        /** Função de Troca de Senha para Aluno */
+        async function handleResetPasswordAluno(email) {
+            // O uso de prompt é mantido para simplicidade em apps de administração
+            const novaSenha = prompt(`Digite a NOVA senha para o aluno ${email}:`);
+
+            if (!novaSenha) {
+                showToast("Troca de senha cancelada ou senha vazia.", "error");
+                return;
+            }
+            if (novaSenha.length < 6) {
+                 showToast("A senha deve ter pelo menos 6 caracteres.", "error");
+                return;
+            }
+
+            const result = await apiFetch('/api/trocar_senha_aluno', {
+                email: email,
+                nova_senha: novaSenha
+            });
+
+            if (result.success) {
+                showToast(result.message, 'success');
+            }
+        }
+
+
+        /** Função de Renovação de Licença */
+        async function handleRenovar(email) {
+            const result = await apiFetch('/api/renovar_professor', { email: email });
+            if (result.success) {
+                professoresData[email].expira_em = result.nova_data;
+                renderProfessoresTable(); // Re-renderiza a tabela para atualizar a data
+                showToast(result.message, 'success');
+            }
+        }
+
+        /** Função de Exclusão de Professor */
+        async function handleExcluirProfessor(email) {
+            // Usamos confirm() aqui porque é uma ferramenta de administração/desenvolvimento
+            if (!confirm(`Tem certeza que deseja EXCLUIR permanentemente o professor ${email}?`)) {
+                return;
+            }
+            
+            const result = await apiFetch('/api/excluir_professor', { email: email });
+            if (result.success) {
+                delete professoresData[email];
+                renderProfessoresTable(); // Re-renderiza a tabela
+                showToast(result.message, 'success');
+            }
+        }
+        
+        /** Função de Exclusão de Aluno */
+        async function handleExcluirAluno(email) {
+            // Usamos confirm() aqui porque é uma ferramenta de administração/desenvolvimento
+            if (!confirm(`Tem certeza que deseja EXCLUIR permanentemente o aluno ${email}?`)) {
+                return;
+            }
+            
+            const result = await apiFetch('/api/excluir_aluno', { email: email });
+            if (result.success) {
+                delete alunosData[email];
+                renderAlunosTable(); // Re-renderiza a tabela
+                showToast(result.message, 'success');
+            }
+        }
+
+        /** Manipula o envio do formulário de Cadastro de Professor */
+        cadastroProfessorForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email_professor_cadastro').value.toLowerCase();
+            const senha = document.getElementById('senha_professor_cadastro').value;
+
+            const cadastrarBtn = document.getElementById('cadastrarProfessorBtn');
+            cadastrarBtn.disabled = true;
+            cadastrarBtn.textContent = 'Cadastrando...';
+
+            const result = await apiFetch('/api/cadastrar_professor', { email: email, senha: senha });
+
+            cadastrarBtn.disabled = false;
+            cadastrarBtn.textContent = 'Cadastrar Professor';
+
+            cadastroProfessorMessage.classList.remove('hidden');
+            
+            if (result.success) {
+                // Adiciona o novo professor aos dados locais e re-renderiza
+                professoresData[email] = result.professor_info;
+                renderProfessoresTable();
+                
+                cadastroProfessorMessage.className = 'mt-4 p-4 rounded-lg bg-green-100 border border-green-400 text-green-700';
+                
+                let messageHTML = `<p class="font-bold">${result.message}</p>`;
+
+                if (result.generated_password) {
+                    // Mensagem para senha gerada automaticamente
+                    messageHTML += `<p class="mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                        Senha Gerada: <span id="generated-password" class="font-mono text-lg font-bold">${result.generated_password}</span>
+                                        <button onclick="copyTextToClipboard('${result.generated_password}')"
+                                                class="mt-2 sm:mt-0 ml-0 sm:ml-4 action-button bg-blue-500 hover:bg-blue-600 text-white text-xs shadow-md py-1 px-2">
+                                            Copiar Senha
+                                        </button>
+                                    </p>`;
+                } else {
+                    // Mensagem para senha fornecida pelo admin
+                    messageHTML += `<p class="mt-2">O professor deve usar a senha que você forneceu: 
+                                        <span class="font-mono text-lg font-bold">${senha}</span>
+                                        <button onclick="copyTextToClipboard('${senha}')"
+                                                class="ml-4 action-button bg-blue-500 hover:bg-blue-600 text-white text-xs shadow-md py-1 px-2">
+                                            Copiar Senha
+                                        </button>
+                                    </p>`;
+                }
+                cadastroProfessorMessage.innerHTML = messageHTML;
+
+                // Limpa o formulário
+                document.getElementById('email_professor_cadastro').value = '';
+                document.getElementById('senha_professor_cadastro').value = '';
+
+            } else {
+                cadastroProfessorMessage.className = 'mt-4 p-4 rounded-lg bg-red-100 border border-red-400 text-red-700';
+                cadastroProfessorMessage.innerHTML = `<p class="font-bold">Erro no Cadastro:</p><p>${result.message}</p>`;
+            }
+        });
+        
+        /** Manipula o envio do formulário de Cadastro de Aluno */
+        cadastroAlunoForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email_aluno_cadastro').value.toLowerCase();
+            const senha = document.getElementById('senha_aluno_cadastro').value;
+            const turma = document.getElementById('turma_aluno_cadastro').value.trim();
+
+            const cadastrarBtn = document.getElementById('cadastrarAlunoBtn');
+            cadastrarBtn.disabled = true;
+            cadastrarBtn.textContent = 'Cadastrando...';
+
+            const result = await apiFetch('/api/cadastrar_aluno', { email: email, senha: senha, turma: turma });
+
+            cadastrarBtn.disabled = false;
+            cadastrarBtn.textContent = 'Cadastrar Aluno';
+
+            cadastroAlunoMessage.classList.remove('hidden');
+            
+            if (result.success) {
+                // Adiciona o novo aluno aos dados locais e re-renderiza
+                alunosData[email] = result.aluno_info;
+                renderAlunosTable();
+                
+                cadastroAlunoMessage.className = 'mt-4 p-4 rounded-lg bg-green-100 border border-green-400 text-green-700';
+                
+                let messageHTML = `<p class="font-bold">${result.message}</p>`;
+
+                if (result.generated_password) {
+                    // Mensagem para senha gerada automaticamente
+                    messageHTML += `<p class="mt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                                        Senha Gerada: <span id="generated-password" class="font-mono text-lg font-bold">${result.generated_password}</span>
+                                        <button onclick="copyTextToClipboard('${result.generated_password}')"
+                                                class="mt-2 sm:mt-0 ml-0 sm:ml-4 action-button bg-blue-500 hover:bg-blue-600 text-white text-xs shadow-md py-1 px-2">
+                                            Copiar Senha
+                                        </button>
+                                    </p>`;
+                } else {
+                    // Mensagem para senha fornecida pelo admin
+                    messageHTML += `<p class="mt-2">O aluno deve usar a senha que você forneceu: 
+                                        <span class="font-mono text-lg font-bold">${senha}</span>
+                                        <button onclick="copyTextToClipboard('${senha}')"
+                                                class="ml-4 action-button bg-blue-500 hover:bg-blue-600 text-white text-xs shadow-md py-1 px-2">
+                                            Copiar Senha
+                                        </button>
+                                    </p>`;
+                }
+                cadastroAlunoMessage.innerHTML = messageHTML;
+
+                // Limpa o formulário
+                document.getElementById('email_aluno_cadastro').value = '';
+                document.getElementById('senha_aluno_cadastro').value = '';
+                document.getElementById('turma_aluno_cadastro').value = '';
+
+            } else {
+                cadastroAlunoMessage.className = 'mt-4 p-4 rounded-lg bg-red-100 border border-red-400 text-red-700';
+                cadastroAlunoMessage.innerHTML = `<p class="font-bold">Erro no Cadastro:</p><p>${result.message}</p>`;
+            }
+        });
+
+
+        /** Função de Filtragem da Tabela */
+        function filterTable(type) {
+            if (type === 'professor') {
+                const filter = searchBarProfessor.value.toLowerCase();
+                const rows = professoresTableBody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const email = row.getAttribute('data-email').toLowerCase();
+                    if (email.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            } else if (type === 'aluno') {
+                 const filter = searchBarAluno.value.toLowerCase();
+                const rows = alunosTableBody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const email = row.getAttribute('data-email').toLowerCase();
+                    if (email.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // --- Inicialização ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProfessoresTable();
+            renderAlunosTable();
+        });
+    </script>
+</body>
+</html>

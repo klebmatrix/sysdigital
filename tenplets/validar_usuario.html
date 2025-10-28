@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Validando...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { background-color: #f4f7f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: 'Inter', sans-serif; }
+        .message-box { background: white; padding: 2rem; border-radius: 0.75rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="message-box">
+        <p class="text-xl font-semibold text-gray-700">Validando credenciais...</p>
+        <div class="mt-4 animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais obrigatórias (Firebase)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        
+        // Ativa o log para debug no console
+        setLogLevel('debug'); 
+
+        let app, db, auth;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (e) {
+            console.error("Erro ao inicializar Firebase. Verifique a configuração.", e);
+            window.location.href = '/?erro=config_firebase';
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const email = urlParams.get('email');
+        const senha = urlParams.get('senha');
+
+        if (!email || !senha) {
+            window.location.href = '/?erro=credenciais_ausentes';
+            console.error("Email ou senha ausentes.");
+            // Evita a execução do restante do script se não houver credenciais.
+        } else {
+            loginAndCheckRole(email, senha);
+        }
+
+        /**
+         * Tenta fazer login com email/senha e verifica o papel do usuário no Firestore.
+         * @param {string} email Email do usuário.
+         * @param {string} senha Senha do usuário.
+         */
+        async function loginAndCheckRole(email, senha) {
+            try {
+                // 1. Autenticação Firebase
+                const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+                const user = userCredential.user;
+                const userId = user.uid;
+
+                // 2. Consulta o Firestore para obter o perfil/role
+                // Assume-se que o role está salvo em /artifacts/{appId}/public/data/users/{userId}
+                const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, userId);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const role = userData.role;
+                    let redirectUrl = null;
+
+                    if (role === 'professor') {
+                        redirectUrl = '/professor_dashboard';
+                    } else if (role === 'aluno') {
+                        redirectUrl = '/aluno_dashboard';
+                    }
+
+                    if (redirectUrl) {
+                        console.log(`Login bem-sucedido. Role: ${role}. Redirecionando para: ${redirectUrl}`);
+                        // Nota: O Firebase Auth já gerencia a sessão, um cookie não é estritamente necessário
+                        // mas adicionamos 'usuarioAtual' no localStorage como referência simples.
+                        localStorage.setItem('usuarioAtual', `${role}:${email}`);
+                        window.location.href = redirectUrl;
+                    } else {
+                        console.error("Role de usuário inválida ou não definida:", role);
+                        window.location.href = '/?erro=role_nao_definido';
+                    }
+                } else {
+                    console.error("Documento de usuário não encontrado no Firestore.");
+                    window.location.href = '/?erro=perfil_nao_encontrado';
+                }
+
+            } catch (error) {
+                // 3. Login falhou (senha incorreta, usuário não existe, etc.)
+                console.error("Erro de autenticação Firebase:", error.message);
+                window.location.href = '/?erro=credenciais_invalidas';
+            }
+        }
+    </script>
+</body>
+</html>

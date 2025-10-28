@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Aluno</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; }
+        .card { background-color: white; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .action-button { transition: background-color 0.2s, transform 0.1s; }
+        #feedback-message {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+        .dashboard-content { opacity: 0; transition: opacity 0.5s; }
+        .loaded .dashboard-content { opacity: 1; }
+        /* Estilos específicos para a lista de atividades */
+        .activity-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .activity-item:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, doc, getDoc, setLogLevel, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais obrigatórias (Firebase)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+        
+        // Ativa o log para debug no console (útil para desenvolvimento)
+        setLogLevel('debug'); 
+
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (e) {
+            console.error("Erro ao inicializar Firebase. Verifique a configuração.", e);
+        }
+
+        // Estado da Aplicação
+        let activities = [];
+        let currentActivity = null; // Atividade sendo respondida
+        let answers = {}; // Respostas do aluno
+
+        // Elementos DOM
+        const activitiesList = document.getElementById('activitiesList');
+        const activityContainer = document.getElementById('activityContainer');
+        const activitiesSection = document.getElementById('activitiesSection');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const dashboardContainer = document.getElementById('dashboardContainer');
+
+        // --- Funções de Utilidade ---
+
+        function showFeedback(message, type = 'success') {
+            feedbackMessage.textContent = message;
+            feedbackMessage.className = `p-3 rounded-lg shadow-xl text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            feedbackMessage.style.display = 'block';
+            setTimeout(() => { feedbackMessage.style.display = 'none'; }, 5000);
+        }
+
+        // --- Gerenciamento de Autenticação e Carregamento ---
+
+        function finishLoading() {
+            if (loadingIndicator) loadingIndicator.classList.add('hidden');
+            if (dashboardContainer) {
+                 dashboardContainer.classList.add('loaded');
+                 dashboardContainer.classList.remove('hidden');
+            }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                const userIdDisplay = document.getElementById('userIdDisplay');
+                if (userIdDisplay) {
+                    userIdDisplay.textContent = `ID do Aluno: ${userId}`; 
+                }
+            } else if (!initialAuthToken) {
+                try {
+                    await signInAnonymously(auth);
+                } catch (e) {
+                     console.error("Erro ao tentar login anônimo:", e);
+                }
+            }
+            isAuthReady = true;
+            finishLoading();
+            setupRealtimeListener();
+        });
+
+        (async () => {
+            try {
+                if (initialAuthToken) {
+                     await signInWithCustomToken(auth, initialAuthToken);
+                } else if (!auth.currentUser) {
+                     await signInAnonymously(auth); 
+                }
+            } catch (error) {
+                console.error("Erro na autenticação inicial:", error);
+                finishLoading(); 
+            }
+        })();
+        
+        // --- Renderização de Atividades Disponíveis ---
+
+        function setupRealtimeListener() {
+            if (!isAuthReady) return;
+
+            // Caminho: /artifacts/{appId}/public/data/activities (Acesso público)
+            const activityCollectionRef = collection(db, `artifacts/${appId}/public/data/activities`);
+            const q = query(activityCollectionRef); // Consulta todas as atividades disponíveis
+
+            onSnapshot(q, (snapshot) => {
+                activities = [];
+                snapshot.forEach(doc => {
+                    activities.push({ id: doc.id, ...doc.data() });
+                });
+                renderActivitiesList();
+            }, (error) => {
+                console.error("Erro ao obter atividades:", error);
+                showFeedback("Erro ao carregar atividades disponíveis.", "error");
+            });
+        }
+
+        function renderActivitiesList() {
+            if (!activitiesList) return;
+
+            activitiesList.innerHTML = '';
+            if (activities.length === 0) {
+                activitiesList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma atividade disponível no momento.</p>';
+                return;
+            }
+
+            activities.forEach(activity => {
+                const mcCount = activity.questions.filter(q => q.type === 'multiple_choice').length;
+                const openCount = activity.questions.filter(q => q.type === 'open_response').length;
+                const creationDate = new Date(activity.dataCriacao).toLocaleDateString('pt-BR');
+
+                const itemEl = document.createElement('li');
+                itemEl.className = 'activity-item card mb-3 flex flex-col md:flex-row justify-between items-start md:items-center border-l-4 border-blue-500';
+                itemEl.setAttribute('data-id', activity.id);
+                itemEl.innerHTML = `
+                    <div class="flex-1">
+                        <p class="text-xl font-semibold text-gray-800">${activity.nome}</p>
+                        <p class="text-sm text-gray-500">
+                            ${activity.questions.length} Questões | Criada em: ${creationDate}
+                        </p>
+                    </div>
+                    <button class="action-button bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 mt-2 md:mt-0">
+                        Responder
+                    </button>
+                `;
+                activitiesList.appendChild(itemEl);
+            });
+            
+            activitiesList.querySelectorAll('.activity-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const activityId = item.getAttribute('data-id');
+                    loadActivity(activityId);
+                });
+            });
+        }
+        
+        // --- Carregar Atividade para Resposta ---
+
+        function loadActivity(activityId) {
+            const activity = activities.find(a => a.id === activityId);
+            if (!activity) return showFeedback("Atividade não encontrada.", "error");
+
+            currentActivity = activity;
+            answers = {};
+            
+            activitiesSection.classList.add('hidden');
+            activityContainer.classList.remove('hidden');
+            activityContainer.innerHTML = `
+                <h2 class="text-2xl font-semibold text-green-600 mb-4 border-b pb-2">${activity.nome}</h2>
+                <p class="text-gray-500 mb-6">Responda as questões abaixo e clique em "Enviar Respostas" ao finalizar.</p>
+                <form id="answerForm" class="space-y-6"></form>
+                <div class="mt-8">
+                    <button id="submitAnswersBtn" class="action-button bg-green-500 hover:bg-green-600 text-white w-full p-3 text-lg font-semibold">
+                        Enviar Respostas
+                    </button>
+                    <button id="cancelBtn" class="action-button bg-gray-400 hover:bg-gray-500 text-white w-full p-3 text-lg font-semibold mt-3">
+                        Voltar
+                    </button>
+                </div>
+            `;
+            
+            const form = document.getElementById('answerForm');
+            activity.questions.forEach((q, index) => {
+                const questionNumber = index + 1;
+                const qEl = document.createElement('div');
+                qEl.className = 'card border-l-4 p-4';
+                qEl.innerHTML = `<p class="font-bold text-lg mb-3">${questionNumber}. ${q.text}</p>`;
+                
+                if (q.type === 'multiple_choice') {
+                    qEl.classList.add('border-blue-500', 'bg-blue-50');
+                    q.options.forEach(opt => {
+                        qEl.innerHTML += `
+                            <div class="flex items-center mt-2">
+                                <input type="radio" id="q${questionNumber}_${opt.value}" name="q${questionNumber}" value="${opt.value}" class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                <label for="q${questionNumber}_${opt.value}" class="ml-3 block text-sm font-medium text-gray-700">${opt.value}) ${opt.text}</label>
+                            </div>
+                        `;
+                    });
+                } else if (q.type === 'true_false') {
+                    qEl.classList.add('border-gray-500', 'bg-gray-100');
+                    qEl.innerHTML += `
+                        <div class="flex space-x-4 mt-3">
+                            <div class="flex items-center">
+                                <input type="radio" id="q${questionNumber}_C" name="q${questionNumber}" value="C" class="h-4 w-4 text-gray-600 focus:ring-gray-500">
+                                <label for="q${questionNumber}_C" class="ml-3 block text-sm font-medium text-gray-700">Certo (C)</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="q${questionNumber}_E" name="q${questionNumber}" value="E" class="h-4 w-4 text-gray-600 focus:ring-gray-500">
+                                <label for="q${questionNumber}_E" class="ml-3 block text-sm font-medium text-gray-700">Errado (E)</label>
+                            </div>
+                        </div>
+                    `;
+                } else if (q.type === 'open_response') {
+                    qEl.classList.add('border-yellow-500', 'bg-yellow-50');
+                    qEl.innerHTML += `
+                        <label for="q${questionNumber}_open" class="block text-sm font-medium text-gray-700 mt-3">Resposta (${q.writingInstruction}):</label>
+                        <textarea id="q${questionNumber}_open" name="q${questionNumber}" rows="4" class="mt-1 block w-full p-2 border border-yellow-300 rounded-lg shadow-sm" placeholder="Escreva sua resposta aqui..."></textarea>
+                    `;
+                }
+                form.appendChild(qEl);
+            });
+            
+            // Adiciona listeners aos botões
+            document.getElementById('submitAnswersBtn').addEventListener('click', submitAnswers);
+            document.getElementById('cancelBtn').addEventListener('click', () => {
+                activityContainer.classList.add('hidden');
+                activitiesSection.classList.remove('hidden');
+                currentActivity = null;
+                answers = {};
+            });
+        }
+        
+        // --- Enviar Respostas ---
+        
+        async function submitAnswers() {
+            if (!isAuthReady || !userId) {
+                return showFeedback("Aguarde a autenticação...", "error");
+            }
+            if (!currentActivity) return showFeedback("Nenhuma atividade carregada.", "error");
+
+            const form = document.getElementById('answerForm');
+            answers = {};
+            let missingAnswers = false;
+
+            currentActivity.questions.forEach((q, index) => {
+                const questionNumber = index + 1;
+                let answer = null;
+                
+                if (q.type === 'multiple_choice' || q.type === 'true_false') {
+                    const selected = form.querySelector(`input[name="q${questionNumber}"]:checked`);
+                    if (selected) {
+                        answer = selected.value;
+                    }
+                } else if (q.type === 'open_response') {
+                    const text = form.querySelector(`#q${questionNumber}_open`).value.trim();
+                    if (text) {
+                        answer = text;
+                    }
+                }
+                
+                if (answer) {
+                    answers[q.text] = answer;
+                } else {
+                    missingAnswers = true;
+                }
+            });
+
+            if (missingAnswers) {
+                // Não é um alert, mas uma confirmação customizada (uso confirm temporariamente por restrição)
+                const isConfirmed = confirm('Você deixou algumas questões sem resposta. Deseja enviar assim mesmo?');
+                if (!isConfirmed) return;
+            }
+
+            const submitBtn = document.getElementById('submitAnswersBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+            
+            // Estrutura do Envio
+            const submissionData = {
+                alunoId: userId,
+                activityId: currentActivity.id,
+                activityName: currentActivity.nome,
+                dataEnvio: new Date().toISOString(),
+                respostas: answers,
+                // O professor usará o gabarito salvo na atividade original para correção
+                correcaoStatus: 'Pendente' 
+            };
+
+            try {
+                // 1. Salvar a submissão do aluno
+                // Caminho: /artifacts/{appId}/users/{userId}/submissions
+                const submissionCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/submissions`);
+                
+                // Usando o path completo para garantir que o professor consiga achar as submissões
+                const professorSubmissionRef = doc(db, `artifacts/${appId}/public/data/submissions`, `${currentActivity.id}_${userId}_${Date.now()}`);
+                await setDoc(professorSubmissionRef, submissionData);
+
+                // 2. Atualizar o contador de submissões na atividade (para o professor ver)
+                const activityDocRef = doc(db, `artifacts/${appId}/public/data/activities`, currentActivity.id);
+                const activityDoc = await getDoc(activityDocRef);
+                const currentSubmissions = activityDoc.data()?.submissions || 0;
+                await updateDoc(activityDocRef, {
+                    submissions: currentSubmissions + 1
+                });
+
+                showFeedback("Respostas enviadas com sucesso! O professor fará a correção.");
+                
+                // Volta para a lista de atividades
+                activityContainer.classList.add('hidden');
+                activitiesSection.classList.remove('hidden');
+                currentActivity = null;
+                answers = {};
+
+            } catch (error) {
+                console.error("Erro ao enviar respostas:", error);
+                showFeedback("Erro ao enviar respostas. Tente novamente.", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar Respostas';
+            }
+        }
+        
+    </script>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Mensagem de Feedback (Toast) -->
+    <div id="feedback-message" style="display:none;"></div>
+
+    <header class="flex justify-between items-center mb-8 border-b pb-4">
+        <h1 class="text-3xl font-bold text-gray-800">Dashboard do Aluno</h1>
+        <p id="userIdDisplay" class="text-xs text-gray-500 bg-gray-100 p-2 rounded-lg truncate">Aguardando autenticação...</p>
+        <!-- Mantendo a referência ao endpoint de logout/login -->
+        <a href="{{ url_for('logout_login') }}" class="action-button bg-red-500 hover:bg-red-600 text-white shadow-md">
+            Sair
+        </a>
+    </header>
+    
+    <!-- Indicador de Carregamento -->
+    <div id="loadingIndicator" class="text-center p-8 text-xl font-semibold text-blue-500">
+        Carregando painel e atividades...
+    </div>
+
+    <!-- Conteúdo Principal do Dashboard (Escondido até carregar) -->
+    <div id="dashboardContainer" class="dashboard-content hidden">
+        
+        <!-- Seção 1: Lista de Atividades (Padrão) -->
+        <section id="activitiesSection" class="card mb-8">
+            <h2 class="text-2xl font-semibold text-blue-600 mb-4 border-b pb-2">Atividades Disponíveis para Resposta</h2>
+            
+            <ul id="activitiesList" class="divide-y divide-gray-200">
+                <p class="text-gray-500 text-center">Carregando atividades...</p>
+            </ul>
+        </section>
+
+        <!-- Seção 2: Container para Responder a Atividade (Escondido) -->
+        <section id="activityContainer" class="card hidden">
+            <!-- Conteúdo da atividade será injetado aqui pelo JavaScript -->
+        </section>
+
+    </div>
+
+</body>
+</html>
