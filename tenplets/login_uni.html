@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <style>
     body{font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f4f8;}
     .container {background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px;}
@@ -18,3 +19,25 @@
         <p style="text-align: center; font-size: small;">A rota <a href="{{ debug_env_url }}" style="color: #007bff;">/debug_credenciais_critico</a> mostrará se o Render leu as variáveis.</p>
     </form>
 </div>
+=======
+<style>
+    body{font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f4f8;}
+    .container {background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px;}
+    h2 {text-align: center; color: #333; margin-bottom: 20px;}
+    input[type="text"], input[type="password"] {width: 100%; padding: 10px; margin: 8px 0 16px 0; display: inline-block; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;}
+    button {background-color: #007bff; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px;}
+    button:hover {opacity: 0.9;}
+    .error {color: red; text-align: center; margin-bottom: 15px; background: #ffe0e0; padding: 10px; border-radius: 6px;}
+</style>
+<div class="container">
+    <h2>Tela de Login</h2>
+    {% if error %} <p class="error">{{ error }}</p> {% endif %}
+    <form method="post">
+        <label for="email">E-mail:</label><input type="text" name="email" id="email" required>
+        <label for="senha">Senha:</label><input type="password" name="senha" id="senha" required>
+        <label for="funcao">Função (Digite "{{ ADMIN_ROLE_RENDER }}"):</label><input type="text" name="funcao" id="funcao" required value="{{ ADMIN_ROLE_RENDER }}">
+        <button type="submit">Entrar</button>
+        <p style="text-align: center; font-size: small;">A rota <a href="{{ debug_env_url }}" style="color: #007bff;">/debug_credenciais_critico</a> mostrará se o Render leu as variáveis.</p>
+    </form>
+</div>
+>>>>>>> a252b65 (Deploy inicial do projeto Flask Login)
