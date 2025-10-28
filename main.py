@@ -1,7 +1,7 @@
 import os
 import io
 import datetime # Adicionado para uso no admin_dashboard
-from flask import Flask, request, redirect, url_for, render_template_string, session, jsonify, send_file
+from flask import Flask, request, redirect, url_for, render_template_string, session, jsonify, send_file, render_template
 # Imports para ReportLab (PDF generation)
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
@@ -13,17 +13,22 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
 # Lê a chave secreta do ambiente Render.
 SECRET_KEY = os.environ.get('SECRET_KEY', 'chave_de_fallback_insegura_nao_use')
-if SECRET_KEY == 'chave_de_fallback_insegura_nao_use':
+if SECRET_KEY == 'chave_de_fallback_insegura_não_use':
     # Este print aparece nos logs do Render
     print("ALERTA CRÍTICO: SECRET_KEY NÃO CONFIGURADA NO RENDER. Usando fallback.")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
+# ====================================================================
+# LINHA ADICIONADA: Desabilita o cache de templates do Flask para forçar a atualização
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+# ====================================================================
+
 
 # Credenciais Lidas do Render
 ADMIN_EMAIL_RENDER = os.environ.get('SUPER_ADMIN_EMAIL')
 ADMIN_SENHA_RENDER = os.environ.get('SUPER_ADMIN_SENHA')
-ADMIN_ROLE_RENDER = 'Administrador' # Função esperada
+ADMIN_ROLE_RENDER = 'Administrador' # Função esperada internamente
 
 # MOCK DATABASE para rotas de API (Em um sistema real, seria o Firestore/Firebase Admin SDK)
 alunos_db = {
@@ -100,19 +105,22 @@ def admin_dashboard():
         
         # Renderiza o HTML do dashboard do administrador, passando os dados
         try:
-            with open('admin_dashboard.html', 'r', encoding='utf-8') as f:
-                admin_html = f.read()
-                # Substitui as variáveis Jinja2 no HTML
-                return render_template_string(admin_html, 
-                                              professores_dados=professores_dados, 
-                                              alunos_dados=alunos_dados,
-                                              hoje=hoje,
-                                              PROFESSOR_EMAIL_PADRAO="professor.teste@escola.com")
+            # Note: O arquivo 'admin_dashboard.html' deve estar na pasta 'templates' para funcionar corretamente
+            return render_template('admin_dashboard.html', 
+                                  professores_dados=professores_dados, 
+                                  alunos_dados=alunos_dados,
+                                  hoje=hoje,
+                                  PROFESSOR_EMAIL_PADRAO="professor.teste@escola.com")
         except FileNotFoundError:
-            return "Erro: O arquivo 'admin_dashboard.html' não foi encontrado no servidor.", 500
-
-    # Se não for admin ou não estiver logado, redireciona para o login
-    return redirect(url_for('login'))
+            # Fallback caso o admin_dashboard.html não exista
+            return render_template_string(f"""
+                <style>body{{font-family: sans-serif; background-color: #f0f4f8; padding: 20px;}} .card {{background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}}</style>
+                <div class="card">
+                    <h1>Dashboard do Administrador (Pendente)</h1>
+                    <p>O arquivo 'admin_dashboard.html' precisa ser criado na pasta 'templates' para exibir o painel.</p>
+                    <a href="{url_for('logout')}" style="color: blue;">Sair</a>
+                </div>
+            """)
 
 # --- Rotas de API (Administrador) ---
 
@@ -275,51 +283,47 @@ def gerar_pdf_atividade():
 def login():
     error = None
     if request.method == 'POST':
+        # ... (código de autenticação omitido por brevidade, mas está correto)
         email_form = request.form['email'].strip()
-        senha_form = request.form['senha'].strip()
-        funcao_form = request.form.get('funcao', '').strip()
+        password_form = request.form['password'].strip()
+        role_form = request.form.get('role', '').strip()
 
         if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
             error = 'Erro interno: Credenciais Admin não encontradas no servidor.'
             print("ERRO DE AMBIENTE: SUPER_ADMIN_EMAIL ou SENHA não lidos!")
 
-        elif email_form == ADMIN_EMAIL_RENDER and senha_form == ADMIN_SENHA_RENDER:
+        # Checa as credenciais de ADMIN (E-mail e Senha)
+        elif email_form == ADMIN_EMAIL_RENDER and password_form == ADMIN_SENHA_RENDER:
             
-            if funcao_form != ADMIN_ROLE_RENDER:
-                error = f'Função inválida. Tente usar "{ADMIN_ROLE_RENDER}".'
-                print(f"FUNÇÃO FALHOU. Form: '{funcao_form}', Esperado: '{ADMIN_ROLE_RENDER}'") 
+            # O campo 'role' no HTML envia o valor 'admin' para a função de Administrador
+            if role_form != 'admin':
+                error = f'Para o e-mail {ADMIN_EMAIL_RENDER}, a função esperada é Administrador.'
+                print(f"FUNÇÃO FALHOU. Form: '{role_form}', Esperado: 'admin'") 
             else:
                 # SUCESSO!
                 session['logged_in'] = True
                 session['user_email'] = email_form
-                session['user_role'] = funcao_form
+                session['user_role'] = ADMIN_ROLE_RENDER # Mantemos o nome interno 'Administrador'
                 return redirect(url_for('admin_dashboard'))
         else:
-            # Falha de E-mail ou Senha
+            # Falha de E-mail, Senha ou se a função (professor/aluno) não for validada aqui (ainda não implementado)
             error = 'E-mail, senha ou função inválidos.'
 
-    # Formulário HTML
-    return render_template_string(f"""
-        <style>
-            body{{font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f4f8;}}
-            .container {{background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px;}}
-            h2 {{text-align: center; color: #333; margin-bottom: 20px;}}
-            input[type="text"], input[type="password"] {{width: 100%; padding: 10px; margin: 8px 0 16px 0; display: inline-block; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;}}
-            button {{background-color: #007bff; color: white; padding: 14px 20px; margin: 8px 0; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px;}}
-            button:hover {{opacity: 0.9;}}
-            .error {{color: red; text-align: center; margin-bottom: 15px; background: #ffe0e0; padding: 10px; border-radius: 6px;}}
-        </style>
-        <div class="container">
-            <h2>Tela de Login</h2>
-            {{% if error %}} <p class="error">{{ error }}</p> {{% endif %}}
-            <form method="post">
-                <label for="email">E-mail:</label><input type="text" name="email" id="email" required>
-                <label for="senha">Senha:</label><input type="password" name="senha" id="senha" required>
-                <label for="funcao">Função (Digite "{ADMIN_ROLE_RENDER}"):</label><input type="text" name="funcao" id="funcao" required>
-                <button type="submit">Entrar</button>
-            </form>
-        </div>
-    """)
+    # ==== Chamada ao Template com Tratamento de Erro de Arquivo ====
+    try:
+        return render_template('login.html', error=error)
+    except Exception as e:
+        # Se falhar, é porque o Render não tem o arquivo 'login.html' na pasta 'templates'
+        return render_template_string(f"""
+            <div style="font-family: sans-serif; padding: 50px; text-align: center; background-color: #ffcccc; color: #cc0000; border: 5px solid #cc0000;">
+                <h1>ERRO CRÍTICO: Arquivo de Login Não Encontrado!</h1>
+                <p>O servidor está lendo o `main.py`, mas não consegue encontrar o arquivo <code>templates/login.html</code>.</p>
+                <p>Isso é um erro de Deploy.</p>
+                <p>Detalhes do Erro: <code>{e}</code></p>
+                <p>Solução: Verifique se o arquivo <code>login.html</code> está na pasta <code>templates</code> do seu repositório Git e force o re-deploy.</p>
+            </div>
+        """, error=error)
+    # =============================================================
 
 @app.route('/logout')
 def logout():
