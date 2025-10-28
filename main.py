@@ -1,7 +1,16 @@
 import os
-from flask import Flask, request, redirect, url_for, render_template_string, session
+import io
+import datetime # Adicionado para uso no admin_dashboard
+from flask import Flask, request, redirect, url_for, render_template_string, session, jsonify, send_file
+# Imports para ReportLab (PDF generation)
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
-# 1. Configuração da Aplicação
+# =====================================================================
+# 1. Configuração da Aplicação e Credenciais
+# =====================================================================
+
 # Lê a chave secreta do ambiente Render.
 SECRET_KEY = os.environ.get('SECRET_KEY', 'chave_de_fallback_insegura_nao_use')
 if SECRET_KEY == 'chave_de_fallback_insegura_nao_use':
@@ -11,12 +20,20 @@ if SECRET_KEY == 'chave_de_fallback_insegura_nao_use':
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 
-# 2. Credenciais Lidas do Render
+# Credenciais Lidas do Render
 ADMIN_EMAIL_RENDER = os.environ.get('SUPER_ADMIN_EMAIL')
 ADMIN_SENHA_RENDER = os.environ.get('SUPER_ADMIN_SENHA')
 ADMIN_ROLE_RENDER = 'Administrador' # Função esperada
 
-# 3. Rota de Debug para PROVAR se o Render está lendo as variáveis
+# MOCK DATABASE para rotas de API (Em um sistema real, seria o Firestore/Firebase Admin SDK)
+alunos_db = {
+    "aluno.teste@escola.com": {'turma': '5A', 'professor': 'professor.ativo@escola.com', 'senha': '123'},
+}
+
+# =====================================================================
+# 2. Rota de Debug (APENAS PARA VERIFICAR VARIÁVEIS DE AMBIENTE)
+# =====================================================================
+
 @app.route('/debug_credenciais_critico')
 def debug_env():
     # NUNCA DEIXE ESTA ROTA EM PRODUÇÃO! Use apenas para depurar.
@@ -32,33 +49,24 @@ def debug_env():
         return f"""
             <h1>STATUS: VARIÁVEIS LENDO CORRETAMENTE</h1>
             <p>O sistema leu o E-MAIL e a SENHA do Render com sucesso.</p>
-            <p>Agora, o problema só pode ser um erro de digitação no formulário de login.</p>
             <p>E-mail Lido: {ADMIN_EMAIL_RENDER}</p>
             <p>Senha Lido: {ADMIN_SENHA_RENDER}</p>
         """
 
 
-# -----------------------------------------------------------
-# Rotas Web (HTML e Lógica)
-# -----------------------------------------------------------
+# =====================================================================
+# 3. Rotas Web (HTML e Lógica)
+# =====================================================================
 
 @app.route('/')
 def home():
-    # Rota raiz agora apenas redireciona para o login se não estiver logado
     if 'logged_in' in session and session['logged_in']:
-        # Se estiver logado, redireciona para o painel correto
         role = session.get('user_role')
+        
         if role == ADMIN_ROLE_RENDER:
             return redirect(url_for('admin_dashboard'))
-        # Para outros roles (Professor/Aluno), o fluxo é via Firebase/validar_usuario.def home():
-    # Rota raiz agora apenas redireciona para o login se não estiver logado
-    if 'logged_in' in session and session['logged_in']:
-        # Se estiver logado, redireciona para o painel correto
-        role = session.get('user_role')
-        if role == ADMIN_ROLE_RENDER:
-            return redirect(url_for('admin_dashboard'))
-        # Para outros roles (Professor/Aluno), o fluxo é via Firebase/validar_usuario.html
-        # Mas para garantir que a home não quebre, mantemos um fallback simples
+        
+        # Fallback para outros roles (Professor/Aluno)
         return render_template_string(f"""
             <style>body{{font-family: sans-serif; background-color: #f0f4f8; padding: 20px;}} .card {{background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}}</style>
             <div class="card">
@@ -67,40 +75,7 @@ def home():
                 <a href="{url_for('logout')}" style="color: blue;">Sair</a>
             </div>
         """)
-    return redirect(url_for('login'))@app.route('/admin_dashboard')
-def admin_dashboard():
-    # Verifica se o usuário está logado e é administrador
-    if 'logged_in' in session and session['logged_in'] and session.get('user_role') == ADMIN_ROLE_RENDER:
-        
-        # Simulação de dados de professores (em um sistema real, viria do DB)
-        # Para fins de demonstração, vamos usar um dicionário simples
-        professores_dados = {
-            "professor.teste@escola.com": {"expira_em": "2025-12-31"},
-            "professor.ativo@escola.com": {"expira_em": "2026-06-30"},
-            "professor.expirado@escola.com": {"expira_em": "2024-01-01"},
-        }
-        
-        # Simulação de dados de alunos (em um sistema real, viria do DB)
-        alunos_dados = {
-            "aluno.teste@escola.com": {"turma": "5A", "professor": "professor.ativo@escola.com"},
-            "aluno.novo@escola.com": {"turma": "6B", "professor": "professor.teste@escola.com"},
-        }
-        
-        # Data de hoje para comparação no JS
-        import datetime
-        hoje = datetime.date.today().isoformat()
-        
-        # Renderiza o HTML do dashboard do administrador, passando os dados
-        with open('admin_dashboard.html', 'r', encoding='utf-8') as f:
-            admin_html = f.read()
-            # Substitui as variáveis Jinja2 no HTML
-            return render_template_string(admin_html, 
-                                          professores_dados=professores_dados, 
-                                          alunos_dados=alunos_dados,
-                                          hoje=hoje,
-                                          PROFESSOR_EMAIL_PADRAO="professor.teste@escola.com")
-            
-	      return redirect(url_for('login'))
+    return redirect(url_for('login'))
 
 @app.route('/admin_dashboard')
 def admin_dashboard():
@@ -108,7 +83,6 @@ def admin_dashboard():
     if 'logged_in' in session and session['logged_in'] and session.get('user_role') == ADMIN_ROLE_RENDER:
         
         # Simulação de dados de professores (em um sistema real, viria do DB)
-        # Para fins de demonstração, vamos usar um dicionário simples
         professores_dados = {
             "professor.teste@escola.com": {"expira_em": "2025-12-31"},
             "professor.ativo@escola.com": {"expira_em": "2026-06-30"},
@@ -122,25 +96,25 @@ def admin_dashboard():
         }
         
         # Data de hoje para comparação no JS
-        import datetime
         hoje = datetime.date.today().isoformat()
         
         # Renderiza o HTML do dashboard do administrador, passando os dados
-        with open('admin_dashboard.html', 'r', encoding='utf-8') as f:
-            admin_html = f.read()
-            # Substitui as variáveis Jinja2 no HTML
-            return render_template_string(admin_html, 
-                                          professores_dados=professores_dados, 
-                                          alunos_dados=alunos_dados,
-                                          hoje=hoje,
-                                          PROFESSOR_EMAIL_PADRAO="professor.teste@escola.com")
-            
-	    return redirect(url_for('login'))
+        try:
+            with open('admin_dashboard.html', 'r', encoding='utf-8') as f:
+                admin_html = f.read()
+                # Substitui as variáveis Jinja2 no HTML
+                return render_template_string(admin_html, 
+                                              professores_dados=professores_dados, 
+                                              alunos_dados=alunos_dados,
+                                              hoje=hoje,
+                                              PROFESSOR_EMAIL_PADRAO="professor.teste@escola.com")
+        except FileNotFoundError:
+            return "Erro: O arquivo 'admin_dashboard.html' não foi encontrado no servidor.", 500
+
+    # Se não for admin ou não estiver logado, redireciona para o login
+    return redirect(url_for('login'))
 
 # --- Rotas de API (Administrador) ---
-
-# Simulação de funções de API para o dashboard do administrador.
-# Em um sistema real, estas funções chamariam o Firebase Admin SDK ou um backend seguro.
 
 @app.route('/api/cadastrar_professor', methods=['POST'])
 def cadastrar_professor():
@@ -148,30 +122,21 @@ def cadastrar_professor():
     email = data.get('email', '').lower()
     senha = data.get('senha')
 
-    # Simulação de lógica de cadastro
-    # ... (lógica de geração de senha, validação, etc.)
-    
     # Simulação de retorno de sucesso
     return jsonify({'success': True, 'message': 'Professor cadastrado com sucesso!', 'professor_info': {'expira_em': '2026-12-31'}, 'generated_password': 'nova_senha_gerada'})
 
 @app.route('/api/renovar_professor', methods=['POST'])
 def renovar_professor():
-    # Simulação de lógica de renovação
-    # ...
     # Simulação de retorno de sucesso
     return jsonify({'success': True, 'message': 'Licença renovada com sucesso!', 'nova_data': '2027-12-31'})
 
 @app.route('/api/trocar_senha_professor', methods=['POST'])
 def trocar_senha_professor():
-    # Simulação de lógica de troca de senha
-    # ...
     # Simulação de retorno de sucesso
     return jsonify({'success': True, 'message': 'Senha alterada com sucesso!'})
 
 @app.route('/api/excluir_professor', methods=['POST'])
 def excluir_professor():
-    # Simulação de lógica de exclusão
-    # ...
     # Simulação de retorno de sucesso
     return jsonify({'success': True, 'message': 'Professor excluído com sucesso!'})
 
@@ -187,7 +152,6 @@ def cadastrar_aluno():
     if not email or not turma:
         return jsonify({'success': False, 'message': 'E-mail e Turma são obrigatórios.'}), 400
 
-    # Simulação de geração de senha se não for fornecida
     generated_password = None
     if not senha:
         import string
@@ -195,16 +159,14 @@ def cadastrar_aluno():
         generated_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
         senha = generated_password
 
-    # Simulação: Verificar se o aluno já existe (usando a simulação de DB)
     global alunos_db
     if email in alunos_db:
         return jsonify({'success': False, 'message': f'Aluno com e-mail {email} já cadastrado.'}), 409
 
-    # Simulação de cadastro de aluno (em um sistema real, isso chamaria o Firebase Admin SDK)
     alunos_db[email] = {
         'turma': turma,
-        'professor': 'admin@escola.com', # Simulação: Administrador cadastra, mas não atribui professor
-        'senha': senha # Em um sistema real, a senha seria hasheada ou gerenciada pelo Firebase Auth
+        'professor': 'admin@escola.com', 
+        'senha': senha
     }
 
     response = {
@@ -228,8 +190,7 @@ def trocar_senha_aluno():
     if email not in alunos_db:
         return jsonify({'success': False, 'message': 'Aluno não encontrado.'}), 404
 
-    # Simulação de troca de senha
-    alunos_db[email]['senha'] = nova_senha # Em um sistema real, isso chamaria o Firebase Admin SDK
+    alunos_db[email]['senha'] = nova_senha
 
     return jsonify({'success': True, 'message': f'Senha do aluno {email} alterada com sucesso!'})
 
@@ -245,8 +206,7 @@ def excluir_aluno():
     if email not in alunos_db:
         return jsonify({'success': False, 'message': 'Aluno não encontrado.'}), 404
 
-    # Simulação de exclusão de aluno
-    del alunos_db[email] # Em um sistema real, isso chamaria o Firebase Admin SDK
+    del alunos_db[email]
 
     return jsonify({'success': True, 'message': f'Aluno {email} excluído com sucesso!'})
 
@@ -315,29 +275,24 @@ def gerar_pdf_atividade():
 def login():
     error = None
     if request.method == 'POST':
-        email_form = request.form['email'].strip() # Remove espaços em branco
-        senha_form = request.form['senha'].strip() # Remove espaços em branco
+        email_form = request.form['email'].strip()
+        senha_form = request.form['senha'].strip()
         funcao_form = request.form.get('funcao', '').strip()
 
-        # Checa se as variáveis do Render estão disponíveis
         if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
-             error = 'Erro interno: Credenciais Admin não encontradas no servidor.'
-             print("ERRO DE AMBIENTE: SUPER_ADMIN_EMAIL ou SENHA não lidos!")
+            error = 'Erro interno: Credenciais Admin não encontradas no servidor.'
+            print("ERRO DE AMBIENTE: SUPER_ADMIN_EMAIL ou SENHA não lidos!")
 
-        # 1. Checagem de E-mail e Senha
-       elif email_form == ADMIN_EMAIL_RENDER and senha_form == ADMIN_SENHA_RENDER:
+        elif email_form == ADMIN_EMAIL_RENDER and senha_form == ADMIN_SENHA_RENDER:
             
-            # 2. Checagem da Função (O ponto do seu erro específico)
             if funcao_form != ADMIN_ROLE_RENDER:
                 error = f'Função inválida. Tente usar "{ADMIN_ROLE_RENDER}".'
-                # Log para debug. Aparece nos logs do Render!
                 print(f"FUNÇÃO FALHOU. Form: '{funcao_form}', Esperado: '{ADMIN_ROLE_RENDER}'") 
             else:
                 # SUCESSO!
                 session['logged_in'] = True
                 session['user_email'] = email_form
                 session['user_role'] = funcao_form
-                # REDIRECIONAMENTO CORRIGIDO: Vai para o painel do Admin
                 return redirect(url_for('admin_dashboard'))
         else:
             # Falha de E-mail ou Senha
@@ -372,4 +327,6 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+    # Quando rodando localmente, use 127.0.0.1 ou localhost
+    # No Render, o gunicorn vai rodar o 'main:app' e usar a porta dele.
     app.run(host='0.0.0.0', port=5000, debug=True)
