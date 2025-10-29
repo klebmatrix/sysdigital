@@ -86,22 +86,36 @@ def login():
     try:
         error = None
         if request.method == 'POST':
-            email_form = request.form['email'].strip()
-            senha_form = request.form['senha'].strip()
-            funcao_form = request.form.get('funcao', '').strip()
+            
+            # --- CORREÇÃO DE SEGURANÇA: Usar .get() para evitar Erro 400 (BadRequestKeyError) ---
+            email_raw = request.form.get('email')
+            senha_raw = request.form.get('senha')
+            funcao_raw = request.form.get('funcao')
+            # ----------------------------------------------------------------------------------
 
-            if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
-                error = 'Erro interno: Credenciais Admin não encontradas no servidor.'
-            elif email_form == ADMIN_EMAIL_RENDER and senha_form == ADMIN_SENHA_RENDER:
-                if funcao_form != ADMIN_ROLE_RENDER:
-                    error = f'Função inválida. Use "{ADMIN_ROLE_RENDER}".'
-                else:
-                    session['logged_in'] = True
-                    session['user_email'] = email_form
-                    session['user_role'] = funcao_form
-                    return redirect(url_for('admin_dashboard'))
+            # 1. Verificar se os campos essenciais estão presentes
+            if not email_raw or not senha_raw:
+                error = 'E-mail e senha são obrigatórios.'
             else:
-                error = 'E-mail, senha ou função inválidos.'
+                # 2. Limpar os dados APÓS a verificação de existência
+                email_form = email_raw.strip()
+                senha_form = senha_raw.strip()
+                funcao_form = funcao_raw.strip() if funcao_raw else ''
+                
+                # --- Lógica de Validação Original Continua ---
+                
+                if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
+                    error = 'Erro interno: Credenciais Admin não encontradas no servidor.'
+                elif email_form == ADMIN_EMAIL_RENDER and senha_form == ADMIN_SENHA_RENDER:
+                    if funcao_form != ADMIN_ROLE_RENDER:
+                        error = f'Função inválida. Use "{ADMIN_ROLE_RENDER}".'
+                    else:
+                        session['logged_in'] = True
+                        session['user_email'] = email_form
+                        session['user_role'] = funcao_form
+                        return redirect(url_for('admin_dashboard'))
+                else:
+                    error = 'E-mail, senha ou função inválidos.'
 
         return render_template('login_uni.html',
                                error=error,
