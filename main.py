@@ -116,6 +116,17 @@ def login():
     except Exception as e:
         return render_error_debug(e)
 
+@app.route('/debug_credenciais_critico')
+def debug_env():
+    """ROTA REINSERIDA: Para verificar se as variáveis de ambiente críticas estão sendo lidas."""
+    try:
+        if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
+            return "<h1>FALHA CRÍTICA:</h1><p>Variáveis não lidas no ambiente Render.</p>"
+        else:
+            return f"<h1>OK:</h1><p>SUPER_ADMIN_EMAIL={ADMIN_EMAIL_RENDER}</p>"
+    except Exception as e:
+        return render_error_debug(e)
+
 @app.route('/logout')
 def logout():
     try:
@@ -125,7 +136,7 @@ def logout():
         return render_error_debug(e)
 
 # -----------------------------------------------------------
-# ROTAS DE API DE GERENCIAMENTO DE PROFESSORES (NOVAS)
+# ROTAS DE API DE GERENCIAMENTO DE PROFESSORES
 # -----------------------------------------------------------
 
 @app.route('/api/cadastrar_professor', methods=['POST'])
@@ -180,8 +191,6 @@ def excluir_professor():
 
     # Simula a exclusão do DB
     del PROFESSORES_DB[email]
-    
-    # Simula a exclusão de alunos associados (apenas por completude, sem mexer no ALUNOS_DB)
     
     return jsonify({
         "success": True, 
