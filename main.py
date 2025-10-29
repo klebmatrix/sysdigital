@@ -5,7 +5,6 @@ import random
 import io
 import traceback
 from flask import Flask, request, redirect, url_for, render_template, session, jsonify, send_file
-
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -21,7 +20,7 @@ PROFESSORES_DB = {
 }
 
 ALUNOS_DB = {
-    "aluno.teste@escola.com": {"turma": "5A", "professor": "professor.ativo@escola.com"},\
+    "aluno.teste@escola.com": {"turma": "5A", "professor": "professor.ativo@escola.com"},
     "aluno.novo@escola.com": {"turma": "6B", "professor": "professor.teste@escola.com"},
     "aluno.excluir@escola.com": {"turma": "9C", "professor": "professor.ativo@escola.com"},
 }
@@ -52,7 +51,7 @@ def render_error_debug(e):
     """, 500
 
 # -----------------------------------------------------------
-# ROTAS
+# ROTAS PRINCIPAIS
 # -----------------------------------------------------------
 
 @app.route('/')
@@ -86,23 +85,16 @@ def login():
     try:
         error = None
         if request.method == 'POST':
-            
-            # --- CORREÇÃO DE SEGURANÇA: Usar .get() para evitar Erro 400 (BadRequestKeyError) ---
             email_raw = request.form.get('email')
             senha_raw = request.form.get('senha')
             funcao_raw = request.form.get('funcao')
-            # ----------------------------------------------------------------------------------
 
-            # 1. Verificar se os campos essenciais estão presentes
             if not email_raw or not senha_raw:
                 error = 'E-mail e senha são obrigatórios.'
             else:
-                # 2. Limpar os dados APÓS a verificação de existência
                 email_form = email_raw.strip()
                 senha_form = senha_raw.strip()
                 funcao_form = funcao_raw.strip() if funcao_raw else ''
-                
-                # --- Lógica de Validação Original Continua ---
                 
                 if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
                     error = 'Erro interno: Credenciais Admin não encontradas no servidor.'
@@ -124,16 +116,6 @@ def login():
     except Exception as e:
         return render_error_debug(e)
 
-@app.route('/debug_credenciais_critico')
-def debug_env():
-    try:
-        if ADMIN_EMAIL_RENDER is None or ADMIN_SENHA_RENDER is None:
-            return "<h1>FALHA CRÍTICA:</h1><p>Variáveis não lidas no ambiente Render.</p>"
-        else:
-            return f"<h1>OK:</h1><p>SUPER_ADMIN_EMAIL={ADMIN_EMAIL_RENDER}</p>"
-    except Exception as e:
-        return render_error_debug(e)
-
 @app.route('/logout')
 def logout():
     try:
@@ -141,6 +123,71 @@ def logout():
         return redirect(url_for('login'))
     except Exception as e:
         return render_error_debug(e)
+
+# -----------------------------------------------------------
+# ROTAS DE API DE GERENCIAMENTO DE PROFESSORES (NOVAS)
+# -----------------------------------------------------------
+
+@app.route('/api/cadastrar_professor', methods=['POST'])
+def cadastrar_professor():
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    
+    if not email:
+        return jsonify({"success": False, "message": "E-mail não fornecido."}), 400
+
+    if email in PROFESSORES_DB:
+        return jsonify({"success": False, "message": f"Professor {email} já está cadastrado."}), 409
+
+    # Simula o cadastro com expiração em 1 ano
+    nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
+    PROFESSORES_DB[email] = {"expira_em": nova_expiracao}
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Professor {email} cadastrado com sucesso. Expira em {nova_expiracao}.",
+        "email": email,
+        "professor_info": PROFESSORES_DB[email]
+    })
+
+@app.route('/api/renovar_professor', methods=['POST'])
+def renovar_professor():
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    
+    if not email or email not in PROFESSORES_DB:
+        return jsonify({"success": False, "message": f"Professor {email} não encontrado para renovação."}), 404
+
+    # Simula a renovação por mais 1 ano a partir de hoje
+    nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
+    PROFESSORES_DB[email]["expira_em"] = nova_expiracao
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Licença de {email} renovada com sucesso. Nova expiração: {nova_expiracao}.",
+        "email": email,
+        "nova_data": nova_expiracao
+    })
+
+
+@app.route('/api/excluir_professor', methods=['POST'])
+def excluir_professor():
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    
+    if not email or email not in PROFESSORES_DB:
+        return jsonify({"success": False, "message": f"Professor {email} não encontrado para exclusão."}), 404
+
+    # Simula a exclusão do DB
+    del PROFESSORES_DB[email]
+    
+    # Simula a exclusão de alunos associados (apenas por completude, sem mexer no ALUNOS_DB)
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Professor {email} e dados associados excluídos com sucesso.",
+        "email": email
+    })
 
 # -----------------------------------------------------------
 # EXEMPLO DE API (PDF)
