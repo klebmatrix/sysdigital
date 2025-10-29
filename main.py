@@ -21,7 +21,7 @@ PROFESSORES_DB = {
 }
 
 ALUNOS_DB = {
-    "aluno.teste@escola.com": {"turma": "5A", "professor": "professor.ativo@escola.com"},
+    "aluno.teste@escola.com": {"turma": "5A", "professor": "professor.ativo@escola.com"},\
     "aluno.novo@escola.com": {"turma": "6B", "professor": "professor.teste@escola.com"},
     "aluno.excluir@escola.com": {"turma": "9C", "professor": "professor.ativo@escola.com"},
 }

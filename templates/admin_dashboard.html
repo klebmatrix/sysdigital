@@ -26,8 +26,8 @@
 </head>
 <body class="p-4 sm:p-8">
 
-    <!-- Variáveis Injetadas pelo Flask (Jinja2) / Simulação de Fallback -->
     <script>
+{% raw %}
         // Função utilitária para desserializar dados do Jinja ou usar um fallback
         const safeParse = (dataStr, fallback) => {
             if (dataStr && (dataStr.startsWith('{') && dataStr.endsWith('}') || dataStr.startsWith('[') && dataStr.endsWith(']'))) {
@@ -48,13 +48,14 @@
             "professor.teste@escola.com": {"expira_em": "2025-12-31"},
         };
         
-        // As variáveis Jinja ({{ ... }}) são injetadas aqui. 
+        // As variáveis Jinja ({{ ... }}) são injetadas aqui.  
         const professoresDataString = '{{ professores_dados|tojson }}';
         const hojeString = '{{ hoje }}';
 
         // Tenta usar os dados injetados pelo Jinja, caso contrário, usa o fallback.
         const professoresDadosBrutos = safeParse(professoresDataString, fallbackProfessores);
         const dataHoje = hojeString && hojeString.length === 10 ? hojeString : new Date().toISOString().split('T')[0]; // Data de hoje como fallback
+{% endraw %}
     </script>
 
     <div class="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
@@ -62,21 +63,17 @@
             <div>
                 <h1 class="text-4xl font-extrabold text-gray-900">🎓 Painel Administrativo</h1>
                 <p class="text-gray-500 mt-1">Gestão Exclusiva de Professores - Data Atual: <span class="font-bold text-gray-700">{{ hoje }}</span></p>
-                <!-- A tag Jinja {{ session['user_email'] }} é para o ambiente Flask -->
                 <p class="text-xs text-gray-500 mt-2">Logado como: <span class="font-mono text-blue-600 font-medium">admin@sistema.com</span> | <a href="/logout" class="text-red-500 hover:text-red-700 font-medium">Sair</a></p>
             </div>
         </header>
 
-        <!-- Mensagem de Status Global -->
         <div id="status-message" class="hidden p-4 rounded-lg mb-6 font-medium" role="alert"></div>
 
         <div class="grid grid-cols-1 gap-10">
             
-            <!-- SECÇÃO 1: GESTÃO DE PROFESSORES -->
             <section>
                 <h2 class="text-2xl font-bold mb-6 section-header">Gerenciamento de Professores</h2>
 
-                <!-- Formulário de Cadastro e Ação de Professor -->
                 <div class="p-6 bg-gray-50 rounded-lg shadow-inner mb-8">
                     <h3 class="text-xl font-semibold mb-4 text-gray-800">Ações Rápidas</h3>
                     <form id="form-professor" class="space-y-4">
@@ -100,7 +97,6 @@
                     </form>
                 </div>
 
-                <!-- Lista de Professores -->
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">Lista de Professores (Status da Licença)</h3>
                 <div class="overflow-x-auto bg-white rounded-lg shadow">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -112,18 +108,14 @@
                             </tr>
                         </thead>
                         <tbody id="professores-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- Conteúdo gerado por JS -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </section>
             
-            <!-- A SECÇÃO DE GERENCIAMENTO DE ALUNOS FOI REMOVIDA A PEDIDO DO USUÁRIO. -->
-
-        </div>
+            </div>
     </div>
 
-    <!-- Modal de Confirmação (Substitui confirm()) -->
     <div id="modal-confirm" class="modal-overlay fixed inset-0 hidden items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm">
             <p id="modal-text" class="text-lg font-semibold text-gray-800 mb-4"></p>
@@ -136,6 +128,7 @@
 
 
     <script>
+{% raw %}
         // Elementos DOM
         const statusMessage = document.getElementById('status-message');
         const professoresTableBody = document.getElementById('professores-table-body');
@@ -301,7 +294,7 @@
             // Inicializa a tabela de professores
             updateProfessoresTable();
         });
-
+{% endraw %}
     </script>
 </body>
 </html>
