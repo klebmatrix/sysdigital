@@ -10,13 +10,23 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
 # -----------------------------------------------------------
-# SIMULAÇÃO DE BANCO DE DADOS
+# FUNÇÃO AUXILIAR DE SENHA
+# -----------------------------------------------------------
+
+def generate_password(length=8):
+    """Gera uma senha simples simulada para o professor."""
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for i in range(length))
+
+# -----------------------------------------------------------
+# SIMULAÇÃO DE BANCO DE DADOS (AGORA INCLUI CAMPO 'senha')
 # -----------------------------------------------------------
 
 PROFESSORES_DB = {
-    "professor.teste@escola.com": {"expira_em": "2025-12-31"},
-    "professor.ativo@escola.com": {"expira_em": "2026-06-30"},
-    "professor.expirado@escola.com": {"expira_em": "2024-01-01"},
+    # ATENÇÃO: Adicionado campo 'senha' para simulação
+    "professor.teste@escola.com": {"expira_em": "2025-12-31", "senha": "SenhaPadrao1"},
+    "professor.ativo@escola.com": {"expira_em": "2026-06-30", "senha": "SenhaPadrao2"},
+    "professor.expirado@escola.com": {"expira_em": "2024-01-01", "senha": "SenhaPadrao3"},
 }
 
 ALUNOS_DB = {
@@ -26,7 +36,7 @@ ALUNOS_DB = {
 }
 
 # -----------------------------------------------------------
-# CONFIGURAÇÃO DO APP
+# CONFIGURAÇÃO DO APP (Restante do código omitido por brevidade)
 # -----------------------------------------------------------
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'chave_fallback_insegura')
@@ -38,7 +48,7 @@ ADMIN_SENHA_RENDER = os.environ.get('SUPER_ADMIN_SENHA')
 ADMIN_ROLE_RENDER = 'Administrador'
 
 # -----------------------------------------------------------
-# FUNÇÃO DE DEBUG PARA ERROS
+# FUNÇÃO DE DEBUG PARA ERROS (Omitido)
 # -----------------------------------------------------------
 
 def render_error_debug(e):
@@ -51,7 +61,7 @@ def render_error_debug(e):
     """, 500
 
 # -----------------------------------------------------------
-# ROTAS PRINCIPAIS
+# ROTAS PRINCIPAIS (Omitido)
 # -----------------------------------------------------------
 
 @app.route('/')
@@ -106,6 +116,17 @@ def login():
                         session['user_email'] = email_form
                         session['user_role'] = funcao_form
                         return redirect(url_for('admin_dashboard'))
+                # LÓGICA DE LOGIN DO PROFESSOR (NOVA SIMULAÇÃO)
+                elif email_form in PROFESSORES_DB and senha_form == PROFESSORES_DB[email_form].get('senha'):
+                     # Verifica se a licença está ativa
+                    expira_em = PROFESSORES_DB[email_form].get("expira_em")
+                    if expira_em and expira_em >= datetime.date.today().isoformat():
+                        session['logged_in'] = True
+                        session['user_email'] = email_form
+                        session['user_role'] = 'Professor' # Novo papel
+                        return render_template('mensagem_generica.html', role='Professor')
+                    else:
+                        error = 'Licença expirada. Contate o Administrador.'
                 else:
                     error = 'E-mail, senha ou função inválidos.'
 
@@ -150,13 +171,15 @@ def cadastrar_professor():
     if email in PROFESSORES_DB:
         return jsonify({"success": False, "message": f"Professor {email} já está cadastrado."}), 409
 
-    # Simula o cadastro com expiração em 1 ano
+    # Simula o cadastro com expiração em 1 ano e GERAÇÃO DE SENHA
     nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
-    PROFESSORES_DB[email] = {"expira_em": nova_expiracao}
+    nova_senha = generate_password() # Nova senha gerada
+    
+    PROFESSORES_DB[email] = {"expira_em": nova_expiracao, "senha": nova_senha}
     
     return jsonify({
         "success": True, 
-        "message": f"Professor {email} cadastrado com sucesso. Expira em {nova_expiracao}.",
+        "message": f"Professor {email} cadastrado com sucesso. A senha gerada é: **{nova_senha}**", # Retorna a senha
         "email": email,
         "professor_info": PROFESSORES_DB[email]
     })
