@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: sysdigital
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      mkdir -p src/templates src/static
+      cp -r src/templates src/static . || true
+    startCommand: gunicorn src.app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.13.0
