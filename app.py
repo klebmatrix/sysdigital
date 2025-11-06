@@ -1,12 +1,18 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for
 from flask_cors import CORS
 import datetime
 
-# -----------------------------------------------------------
-# CONFIGURAÇÃO INICIAL DO APP
-# -----------------------------------------------------------
-app = Flask(__name__)
+app = Flask(__name__, template_folder='backend/templates', static_folder='backend/static')
 CORS(app)
+
+# -----------------------------------------------------------
+# ROTA PRINCIPAL
+# -----------------------------------------------------------
+@app.route('/')
+def index():
+    """Página inicial"""
+    return render_template('index.html')
+
 
 # Banco de dados simulado
 PROFESSORES_DB = {}
