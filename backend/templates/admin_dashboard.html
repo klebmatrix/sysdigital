@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Admin - Gerenciamento de Professores</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+.hidden { display: none; }
+</style>
+</head>
+<body class="p-6">
+
+<h1 class="text-3xl font-bold mb-6 text-center">Painel Admin</h1>
+
+<div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md space-y-6">
+
+    <!-- CADASTRO DE PROFESSOR -->
+    <div>
+        <h2 class="text-xl font-semibold mb-2">Cadastrar Professor</h2>
+        <input type="email" id="prof-email" placeholder="E-mail" class="border p-2 rounded w-full mb-2">
+        <input type="password" id="prof-senha" placeholder="Senha inicial" class="border p-2 rounded w-full mb-2">
+        <input type="date" id="prof-expira" class="border p-2 rounded w-full mb-2">
+        <button id="btn-cadastrar" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Cadastrar</button>
+    </div>
+
+    <!-- PESQUISA DE PROFESSOR -->
+    <div>
+        <h2 class="text-xl font-semibold mb-2">Pesquisar Professor</h2>
+        <input type="text" id="search-email" placeholder="Digite o e-mail" class="border p-2 rounded w-full mb-2">
+        <button id="btn-pesquisar" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Pesquisar</button>
+    </div>
+
+    <!-- LISTA DE PROFESSORES -->
+    <div>
+        <h2 class="text-xl font-semibold mb-2">Professores Cadastrados</h2>
+        <ul id="lista-professores" class="list-disc pl-6 space-y-1"></ul>
+    </div>
+
+</div>
+
+<script>
+// Simulação de banco de dados local
+let professores = [
+    {email:'prof1@escola.com', senha:'123456', expira_em:'2026-06-30'},
+    {email:'prof2@escola.com', senha:'abcdef', expira_em:'2025-12-31'}
+];
+
+// Função para atualizar a lista
+function renderProfessores(lista = professores){
+    const ul = document.getElementById('lista-professores');
+    ul.innerHTML = '';
+    lista.forEach(p=>{
+        const li = document.createElement('li');
+        li.textContent = `${p.email} | Expira: ${p.expira_em}`;
+        const btnExcluir = document.createElement('button');
+        btnExcluir.textContent = 'Excluir';
+        btnExcluir.className = 'ml-4 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700';
+        btnExcluir.onclick = () => {
+            if(confirm(`Deseja realmente excluir ${p.email}?`)){
+                professores = professores.filter(prof=>prof.email!==p.email);
+                renderProfessores();
+            }
+        };
+        li.appendChild(btnExcluir);
+        ul.appendChild(li);
+    });
+}
+
+// ==== CADASTRAR PROFESSOR ====
+document.getElementById('btn-cadastrar').onclick = () => {
+    const email = document.getElementById('prof-email').value.trim();
+    const senha = document.getElementById('prof-senha').value.trim();
+    const expira = document.getElementById('prof-expira').value;
+    if(!email || !senha || !expira) return alert('Preencha todos os campos!');
+    if(professores.find(p=>p.email===email)) return alert('Professor já cadastrado!');
+    professores.push({email, senha, expira_em:expira});
+    renderProfessores();
+    document.getElementById('prof-email').value='';
+    document.getElementById('prof-senha').value='';
+    document.getElementById('prof-expira').value='';
+    alert('Professor cadastrado com sucesso!');
+};
+
+// ==== PESQUISAR PROFESSOR ====
+document.getElementById('btn-pesquisar').onclick = () => {
+    const emailBusca = document.getElementById('search-email').value.trim().toLowerCase();
+    if(!emailBusca) return alert('Digite um e-mail para pesquisar!');
+    const resultado = professores.filter(p=>p.email.toLowerCase().includes(emailBusca));
+    if(resultado.length===0) alert('Nenhum professor encontrado');
+    renderProfessores(resultado);
+};
+
+// Inicializa lista
+renderProfessores();
+</script>
+
+</body>
+</html>

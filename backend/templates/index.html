@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Neuro Game – Multimatemática (Frontend)</title>
+  <style>
+    :root{
+      --bg:#0f0f1f; --card:#121223; --accent:#00e1ff; --muted:#888;
+      --ok:#28a745; --err:#e74c3c;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#0b0b12,#101025);font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;color:#eee}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{margin:0;color:var(--accent)}
+    .controls{display:flex;gap:8px}
+    button{background:#1c1c2b;border:1px solid #222;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .card{background:linear-gradient(180deg,#0f1220,#0b0b14);padding:16px;border-radius:12px;margin-top:18px;border:1px solid #202036}
+    .question{font-size:20px;margin-bottom:12px}
+    .options{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .opt{padding:12px;border-radius:10px;background:#111126;border:1px solid #222;cursor:pointer;text-align:center;font-weight:700}
+    .opt.ok{background:linear-gradient(90deg,#093,#2f6);color:#012}
+    .opt.err{background:linear-gradient(90deg,#a33,#f66);color:#300}
+    .stats{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
+    .bar{height:14px;background:#111;border-radius:8px;overflow:hidden;margin-top:6px}
+    .bar-fill{height:100%;background:linear-gradient(90deg,#00e1ff,#00ff8c);width:0;transition:width .5s}
+    .small{color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel via CDN for quick prototyping -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <script type="text/babel">
+  const { useState, useEffect } = React;
+  const API_BASE = "http://localhost:5000/api"; // ajuste se necessário
+
+  function App(){
+    const [clientId, setClientId] = useState(null);
+    const [area, setArea] = useState("Algebra");
+    const [level, setLevel] = useState("facil");
+    const [question, setQuestion] = useState(null);
+    const [stats, setStats] = useState({});
+    const [message, setMessage] = useState("");
+    const [score, setScore] = useState(0);
+
+    useEffect(() => {
+      // create new client on load
+      fetch(API_BASE + "/new_client", {method:"POST"})
+        .then(r=>r.json()).then(j=>{
+          setClientId(j.clientId);
+          fetchStats(j.clientId);
+          newQuestion(j.clientId, area, level);
+        });
+    }, []);
+
+    useEffect(()=>{
+      if(clientId) newQuestion(clientId, area, level);
+    }, [area, level]);
+
+    function fetchStats(cid){
+      fetch(API_BASE + "/stats?clientId="+cid).then(r=>r.json()).then(j=>{
+        if(j.stats) setStats(j.stats);
+      }).catch(()=>{});
+    }
+
+    function newQuestion(cid, areaArg, levelArg){
+      setMessage("");
+      fetch(API_BASE + "/question", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({clientId: cid||clientId, area: areaArg||area, level: levelArg||level})
+      }).then(r=>r.json()).then(data=>{
+        setQuestion(data);
+      }).catch(err=>{
+        console.error(err);
+        setMessage("Erro ao gerar questão — verifique backend.");
+      });
+    }
+
+    function submitAnswer(opt){
+      if(!question) return;
+      // send to backend
+      fetch(API_BASE + "/submit", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          clientId,
+          questionId: question.questionId,
+          selected: opt,
+          area: question.area
+        })
+      }).then(r=>r.json()).then(res=>{
+        if(res.correct){
+          setMessage("✔ Correto!");
+          setScore(s => s + (res.points || 10));
+        } else {
+          setMessage("✖ Errado — resposta: " + res.correctAnswer);
+          setScore(s => s + (res.points || -5));
+        }
+        // update stats locally and refetch
+        fetchStats(clientId);
+        // reveal selection UI: mark option classes
+        setQuestion(q => ({...q, lastAnswer: opt, lastResult: res.correct, correctAnswer: res.correctAnswer}));
+      }).catch(e=>{
+        console.error(e);
+        setMessage("Erro ao enviar resposta.");
+      });
+    }
+
+    function resetAll(){
+      if(!clientId) return;
+      fetch(API_BASE + "/reset", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({clientId})})
+        .then(()=>{ setStats({}); setScore(0); newQuestion(clientId, area, level); setMessage("Progresso resetado."); });
+    }
+
+    return (
+      <div className="wrap">
+        <div className="header">
+          <h1>Neuro Game – Multimatemática</h1>
+          <div>
+            <div style={{display:"flex",gap:8}}>
+              <select value={area} onChange={e=>setArea(e.target.value)}>
+                {["Algebra","Geometria","Trigonometria","Cálculo","Estatística","Unidades"].map(a=>(
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+              <select value={level} onChange={e=>setLevel(e.target.value)}>
+                <option value="facil">Fácil</option>
+                <option value="medio">Médio</option>
+                <option value="dificil">Difícil</option>
+              </select>
+              <button onClick={()=>newQuestion(clientId, area, level)}>Nova Equação</button>
+              <button onClick={resetAll}>Reset</button>
+            </div>
+            <div className="small">Score: {score} &nbsp; • &nbsp; {message}</div>
+          </div>
+        </div>
+
+        <div className="card">
+          {question ? (
+            <>
+              <div className="question"><strong>{question.area}</strong> — {question.prompt}</div>
+              <div className="options">
+                {question.options.map(opt => {
+                  let cls = "opt";
+                  if(question.lastAnswer){
+                    if(opt === question.lastAnswer){
+                      cls += question.lastResult ? " ok" : " err";
+                    }
+                    if(opt === question.correctAnswer) cls += " ok";
+                  }
+                  return <div key={opt} className={cls} onClick={()=>submitAnswer(opt)}>{opt}</div>;
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="small">Carregando questão...</div>
+          )}
+
+          <div className="stats">
+            {Object.keys(stats).length===0 ? <div className="small">Sem estatísticas ainda</div> :
+              Object.entries(stats).map(([k,v])=>{
+                const pct = v.total ? Math.round((v.correct / v.total) * 100) : 0;
+                return (
+                  <div key={k} style={{minWidth:160}}>
+                    <div className="small">{k} — {v.correct}/{v.total} ({pct}%)</div>
+                    <div className="bar"><div className="bar-fill" style={{width: pct + "%"}}></div></div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

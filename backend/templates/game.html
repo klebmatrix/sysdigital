@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Neuro Game - Matemática</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 Neuro Game - Desafios Matemáticos</h1>
+
+    <div class="nivel">
+      <label for="nivel">Nível:</label>
+      <select id="nivel" onchange="novoDesafio()">
+        <option value="facil">Fácil</option>
+        <option value="medio">Médio</option>
+        <option value="dificil">Difícil</option>
+      </select>
+    </div>
+
+    <div class="painel">
+      <p id="equacao">Clique em “Novo Desafio” para começar!</p>
+      <input type="number" id="resposta" placeholder="Digite sua resposta">
+      <div class="botoes">
+        <button onclick="verificar()">Verificar</button>
+        <button onclick="limpar()">Limpar</button>
+        <button onclick="novoDesafio()">Novo Desafio</button>
+      </div>
+      <p id="resultado"></p>
+      <p id="progresso">Progresso: 0/0 (0%)</p>
+    </div>
+
+    <br>
+    <a href="/dashboard">⬅ Voltar</a>
+  </div>
+</body>
+</html>

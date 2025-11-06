@@ -1,0 +1,6 @@
+Flask
+gunicorn
+reportlab
+nltk
+supabase-py
+python-dotenv
