@@ -4,9 +4,9 @@ services:
     env: python
     buildCommand: |
       pip install -r requirements.txt
-      mkdir -p templates static
-      cp -r templates static . || true
-    startCommand: gunicorn app:app
+      mkdir -p src/templates src/static
+      cp -r src/templates src/static . || true
+    startCommand: gunicorn src.app:app
     envVars:
       - key: FLASK_ENV
         value: production
