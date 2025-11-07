@@ -3,11 +3,11 @@ Flask==2.3.3
 requests==2.31.0
 Jinja2==3.1.2
 
-# Supabase — usando o pacote oficial atualizado
+# Supabase
 supabase==2.23.0
 
-# Ou, se for usar o outro pacote legado:
-# supabase-client==0.2.5
+# ReportLab para gerar PDFs
+reportlab==4.1.3
 
 # Outras dependências
 gunicorn==21.2.0
