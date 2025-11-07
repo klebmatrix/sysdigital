@@ -61,3 +61,9 @@ class Aluno(UserMixin, db.Model):
 
     def get_id(self):
         return str(self.matricula)
+
+
+
+
+
+
