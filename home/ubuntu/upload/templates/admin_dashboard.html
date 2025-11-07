@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração - Professores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .section-header {
+            border-left: 5px solid #1d4ed8; /* Azul escuro */
+            padding-left: 1rem;
+        }
+        /* Estilos para a Pesquisa de Status */
+        .status-ativo { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .status-expirado { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .modal-overlay {
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Variáveis Injetadas pelo Flask (Jinja2) / Simulação de Fallback -->
+    <script>
+        // Função utilitária para desserializar dados do Jinja ou usar um fallback
+        const safeParse = (dataStr, fallback) => {
+            if (dataStr && (dataStr.startsWith('{') && dataStr.endsWith('}') || dataStr.startsWith('[') && dataStr.endsWith(']'))) {
+                try {
+                    return JSON.parse(dataStr.replace(/'/g, '"'));
+                } catch (e) {
+                    console.warn("Erro ao desserializar dados. Usando fallback.", e);
+                    return fallback;
+                }
+            }
+            return fallback;
+        };
+
+        // Fallback de dados para simulação
+        const fallbackProfessores = {
+            "professor.ativo@escola.com": {"expira_em": "2026-06-30"},
+            "professor.expirado@escola.com": {"expira_em": "2024-01-01"},
+            "professor.teste@escola.com": {"expira_em": "2025-12-31"},
+        };
+        
+        // As variáveis Jinja ({{ ... }}) são injetadas aqui. 
+        const professoresDataString = '{{ professores_dados|tojson }}';
+        const hojeString = '{{ hoje }}';
+
+        // Tenta usar os dados injetados pelo Jinja, caso contrário, usa o fallback.
+        const professoresDadosBrutos = safeParse(professoresDataString, fallbackProfessores);
+        const dataHoje = hojeString && hojeString.length === 10 ? hojeString : new Date().toISOString().split('T')[0]; // Data de hoje como fallback
+    </script>
+
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+        <header class="mb-10 border-b pb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-4xl font-extrabold text-gray-900">🎓 Painel Administrativo</h1>
+                <p class="text-gray-500 mt-1">Gestão Exclusiva de Professores - Data Atual: <span class="font-bold text-gray-700">{{ hoje }}</span></p>
+                <!-- A tag Jinja {{ session['user_email'] }} é para o ambiente Flask -->
+                <p class="text-xs text-gray-500 mt-2">Logado como: <span class="font-mono text-blue-600 font-medium">admin@sistema.com</span> | <a href="/logout" class="text-red-500 hover:text-red-700 font-medium">Sair</a></p>
+            </div>
+        </header>
+
+        <!-- Mensagem de Status Global -->
+        <div id="status-message" class="hidden p-4 rounded-lg mb-6 font-medium" role="alert"></div>
+
+        <div class="grid grid-cols-1 gap-10">
+            
+            <!-- SECÇÃO 1: GESTÃO DE PROFESSORES -->
+            <section>
+                <h2 class="text-2xl font-bold mb-6 section-header">Gerenciamento de Professores</h2>
+
+                <!-- Formulário de Cadastro e Ação de Professor -->
+                <div class="p-6 bg-gray-50 rounded-lg shadow-inner mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800">Ações Rápidas</h3>
+                    <form id="form-professor" class="space-y-4">
+	                        <input type="email" id="professor-email" placeholder="E-mail do Professor" required
+	                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+	                        
+	                        <input type="password" id="professor-senha-inicial" placeholder="Senha Inicial (Mínimo 6 caracteres)" 
+	                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+	                        
+	                        <div class="grid grid-cols-3 gap-3">
+                            <button type="button" data-action="cadastrar_professor"
+                                    class="action-btn bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition duration-150">
+                                Cadastrar
+                            </button>
+                            <button type="button" data-action="renovar_professor"
+                                    class="action-btn bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-3 rounded-lg transition duration-150">
+                                Renovar Licença
+                            </button>
+                            <button type="button" data-action="excluir_professor"
+                                    class="action-btn bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition duration-150">
+                                Excluir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lista de Professores -->
+                <h3 class="text-xl font-semibold mb-4 text-gray-800">Lista de Professores (Status da Licença)</h3>
+                <div class="overflow-x-auto bg-white rounded-lg shadow">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-mail</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expira Em</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="professores-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- Conteúdo gerado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- A SECÇÃO DE GERENCIAMENTO DE ALUNOS FOI REMOVIDA A PEDIDO DO USUÁRIO. -->
+
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação (Substitui confirm()) -->
+    <div id="modal-confirm" class="modal-overlay fixed inset-0 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-sm">
+            <p id="modal-text" class="text-lg font-semibold text-gray-800 mb-4"></p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancelar</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Elementos DOM
+        const statusMessage = document.getElementById('status-message');
+        const professoresTableBody = document.getElementById('professores-table-body');
+        const formProfessor = document.getElementById('form-professor');
+        const professorEmailInput = document.getElementById('professor-email');
+
+        // Modal Elements
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalText = document.getElementById('modal-text');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        let modalActionCallback = null;
+
+        // Função para mostrar mensagens de status
+        const showStatus = (message, type = 'success') => {
+            statusMessage.textContent = message;
+            statusMessage.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800');
+            
+            if (type === 'success') {
+                statusMessage.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                statusMessage.classList.add('bg-red-100', 'text-red-800');
+            }
+            
+            // Ocultar após 5 segundos
+            setTimeout(() => statusMessage.classList.add('hidden'), 5000);
+        };
+
+        // Função que simula o confirm() mas usa o modal
+        const customConfirm = (message, callback) => {
+            modalText.textContent = message;
+            modalActionCallback = callback;
+            modalConfirm.classList.remove('hidden');
+            modalConfirm.classList.add('flex');
+        };
+
+        modalCancel.onclick = () => {
+            modalConfirm.classList.add('hidden');
+            modalConfirm.classList.remove('flex');
+        };
+
+        modalConfirmBtn.onclick = () => {
+            modalConfirm.classList.add('hidden');
+            modalConfirm.classList.remove('flex');
+            if (modalActionCallback) {
+                modalActionCallback();
+            }
+        };
+
+        // -----------------------------------------------------------
+        // FUNÇÕES GERAIS DE API (FETCH)
+        // -----------------------------------------------------------
+        const callApi = async (url, data) => {
+            try {
+                // Simulação da chamada fetch ao backend Flask (app.py)
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+                return await response.json();
+            } catch (error) {
+                console.error("Erro de rede/servidor:", error);
+                return { success: false, message: "Erro de conexão com o servidor. Verifique o console." };
+            }
+        };
+
+        // -----------------------------------------------------------
+        // GESTÃO DE PROFESSORES (LISTAGEM E STATUS)
+        // -----------------------------------------------------------
+
+        const updateProfessoresTable = () => {
+            professoresTableBody.innerHTML = ''; // Limpa tabela
+            const professores = Object.entries(professoresDadosBrutos).map(([email, data]) => ({
+                email,
+                ...data
+            }));
+            
+            professores.sort((a, b) => a.email.localeCompare(b.email)).forEach(prof => {
+                // 1. Determinar Status (Pesquisa de Status da Licença)
+                const expiracao = prof.expira_em;
+                let statusClass = 'status-ativo';
+                let statusText = 'Ativo';
+                
+                if (expiracao < dataHoje) {
+                    statusClass = 'status-expirado';
+                    statusText = 'EXPIRADO';
+                }
+
+                // 2. Criar Linha da Tabela
+                const row = professoresTableBody.insertRow();
+                row.className = 'hover:bg-gray-50';
+
+                row.insertCell().textContent = prof.email;
+                row.insertCell().textContent = expiracao;
+                
+                const statusCell = row.insertCell();
+                statusCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-center';
+                
+                const statusSpan = document.createElement('span');
+                statusSpan.className = `inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold ${statusClass}`;
+                statusSpan.textContent = statusText;
+                statusCell.appendChild(statusSpan);
+            });
+        };
+
+	        // Listener para botões de Ação do Professor (Cadastrar, Renovar, Excluir)
+	        formProfessor.querySelectorAll('.action-btn').forEach(button => {
+	            button.addEventListener('click', () => {
+	                const action = button.dataset.action;
+	                const email = professorEmailInput.value.trim().toLowerCase();
+	                const senhaInicialInput = document.getElementById('professor-senha-inicial');
+	                const senha_inicial = senhaInicialInput ? senhaInicialInput.value.trim() : '';
+	
+	                if (!email) {
+	                    showStatus('Por favor, insira o e-mail do professor para realizar a ação.', 'error');
+	                    return;
+	                }
+	
+	                const handleAction = async () => {
+	                    let url = '';
+	                    let data = { email: email };
+	                    
+	                    if (action === 'cadastrar_professor') {
+	                        if (!senha_inicial || senha_inicial.length < 6) {
+	                            showStatus('A senha inicial deve ter no mínimo 6 caracteres.', 'error');
+	                            return;
+	                        }
+	                        url = '/api/cadastrar_professor';
+	                        data.senha_inicial = senha_inicial;
+	                    } else if (action === 'renovar_professor') {
+	                        url = '/api/renovar_professor';
+	                    } else if (action === 'excluir_professor') {
+	                        url = '/api/excluir_professor';
+	                    }
+	                    
+	                    if (url) {
+	                        const result = await callApi(url, data);
+	                        if (result.success) {
+	                            showStatus(result.message, 'success');
+	                            // Atualiza a simulação de DB e a tabela
+	                            if (result.email && result.professor_info) {
+	                                // Cadastro
+	                                professoresDadosBrutos[result.email] = result.professor_info;
+	                            } else if (result.email && action === 'excluir_professor') {
+	                                // Exclusão
+	                                delete professoresDadosBrutos[result.email];
+	                            } else if (result.email && result.nova_data) {
+	                                // Renovação
+	                                professoresDadosBrutos[result.email].expira_em = result.nova_data;
+	                            }
+	                            updateProfessoresTable();
+	                            professorEmailInput.value = ''; // Limpa o input
+	                            if (senhaInicialInput) senhaInicialInput.value = ''; // Limpa a senha
+	                        } else {
+	                            showStatus(result.message, 'error');
+	                        }
+	                    }
+	                };
+	
+	                if (action === 'excluir_professor') {
+	                    customConfirm(`Tem certeza que deseja excluir o professor ${email}?`, handleAction);
+	                } else {
+	                    handleAction();
+	                }
+	            });
+	        });
+
+        // -----------------------------------------------------------
+        // INICIALIZAÇÃO
+        // -----------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializa a tabela de professores
+            updateProfessoresTable();
+        });
+
+    </script>
+</body>
+</html>

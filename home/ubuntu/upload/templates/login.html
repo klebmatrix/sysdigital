@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso ao Sistema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-card {
+            max-width: 400px;
+            width: 90%;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .input-field {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .submit-button {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .submit-button:hover {
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1 class="text-3xl font-extrabold text-center text-gray-900 mb-6">Bem-vindo(a)</h1>
+        <p class="text-center text-gray-500 mb-8">Faça login para acessar seu painel.</p>
+
+        {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <strong class="font-bold">Erro de Login:</strong>
+                <span class="block sm:inline">{{ error }}</span>
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login_login') }}" class="space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <input type="email" id="email" name="email" required placeholder="Seu e-mail" class="input-field">
+            </div>
+            
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                <input type="password" id="password" name="password" required placeholder="Sua senha" class="input-field">
+            </div>
+
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Entrar como</label>
+                <!-- O campo 'select' agora inclui a opção 'Administrador' -->
+                <select id="role" name="role" required class="input-field">
+                    <option value="professor">Professor(a)</option>
+                    <option value="aluno">Aluno(a)</option>
+                    <option value="admin">Administrador</option> 
+                </select>
+            </div>
+
+            <button type="submit" class="submit-button w-full bg-blue-600 text-white hover:bg-blue-700">
+                Entrar
+            </button>
+        </form>
+
+        <p class="text-center text-sm text-gray-400 mt-6">
+            Credenciais Iniciais: 
+            <br>
+            **Admin:** admin@escola.com / (Use a senha configurada na sua hospedagem) 
+            <br>
+            *Professores e Alunos devem ser cadastrados pelo Administrador.*
+        </p>
+    </div>
+</body>
+</html>
