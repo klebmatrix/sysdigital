@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Página Inicial</title>
+</head>
+<body>
+    <h1>Bem-vindo à página inicial!</h1>
+
+    <!-- Inclui o conteúdo do login.html -->
+    {% include "login.html" %}
+
+    <!-- Ou apenas link para a rota de login -->
+    <p><a href="{{ url_for('login') }}">Ir para Login</a></p>
+</body>
+</html>
