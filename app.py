@@ -1,96 +1,80 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for
-from flask_cors import CORS
-import datetime
+from flask import Flask, render_template, redirect, url_for, session
+from backend.database import db
+from backend.routes.admin_routes import admin_bp
+from backend.routes.professor_routes import professor_bp
+from backend.routes.aluno_routes import aluno_bp
+from models import Admin, Professor, Aluno
 
-app = Flask(__name__, template_folder='backend/templates', static_folder='backend/static')
-CORS(app)
+from flask_login import LoginManager
 
-# -----------------------------------------------------------
-# ROTA PRINCIPAL
-# -----------------------------------------------------------
-@app.route('/')
+# =============================
+# Inicialização do Flask
+# =============================
+app = Flask(__name__)
+app.secret_key = "chave-super-secreta"  # Troque por uma chave forte
+
+# =============================
+# Banco de Dados
+# =============================
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///escola.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+
+# =============================
+# Gerenciador de Login
+# =============================
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+
+# =============================
+# Registro das rotas (Blueprints)
+# =============================
+app.register_blueprint(admin_bp, url_prefix="/admin")
+app.register_blueprint(professor_bp, url_prefix="/professor")
+app.register_blueprint(aluno_bp, url_prefix="/aluno")
+
+# =============================
+# Modelo de LoginManager
+# =============================
+@login_manager.user_loader
+def load_user(user_id):
+    # Tenta encontrar o usuário em todas as tabelas
+    user = Admin.query.get(user_id)
+    if not user:
+        user = Professor.query.get(user_id)
+    if not user:
+        user = Aluno.query.get(user_id)
+    return user
+
+# =============================
+# Página inicial (Login)
+# =============================
+@app.route("/")
 def index():
-    """Página inicial"""
-    return render_template('index.html')
+    if "usuario" in session:
+        tipo = session.get("tipo")
+        if tipo == "admin":
+            return redirect(url_for("admin.dashboard"))
+        elif tipo == "professor":
+            return redirect(url_for("professor.dashboard"))
+        elif tipo == "aluno":
+            return redirect(url_for("aluno.dashboard"))
+    return render_template("login.html")
 
+# =============================
+# Inicialização do banco
+# =============================
+@app.before_first_request
+def criar_banco():
+    db.create_all()
+    if not Admin.query.first():
+        admin_padrao = Admin(email="admin@escola.com", senha="1234")
+        db.session.add(admin_padrao)
+        db.session.commit()
 
-# Banco de dados simulado
-PROFESSORES_DB = {}
-supabase = None
-GAME_LEVELS_TABLE = "game_levels"
-
-# -----------------------------------------------------------
-# ROTAS DE API DE GERENCIAMENTO DE PROFESSORES
-# -----------------------------------------------------------
-@app.route('/api/cadastrar_professor', methods=['POST'])
-def cadastrar_professor():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    senha_inicial = data.get('senha_inicial', '').strip()
-    
-    if not email:
-        return jsonify({"success": False, "message": "E-mail não fornecido."}), 400
-
-    if not senha_inicial or len(senha_inicial) < 6:
-        return jsonify({"success": False, "message": "Senha inicial deve ter no mínimo 6 caracteres."}), 400
-
-    if email in PROFESSORES_DB:
-        return jsonify({"success": False, "message": f"Professor {email} já está cadastrado."}), 409
-
-    nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
-    PROFESSORES_DB[email] = {
-        "expira_em": nova_expiracao,
-        "senha_inicial": senha_inicial
-    }
-    
-    return jsonify({
-        "success": True, 
-        "message": f"Professor {email} cadastrado com sucesso. Expira em {nova_expiracao}.",
-        "email": email,
-        "professor_info": PROFESSORES_DB[email]
-    })
-
-
-# -----------------------------------------------------------
-# ROTAS DO NEUROGAME
-# -----------------------------------------------------------
-def get_game_levels():
-    if not supabase:
-        return {}
-    response = supabase.table(GAME_LEVELS_TABLE).select("*").execute()
-    levels = {item['key']: item for item in response.data}
-    return levels
-
-GAME_LEVELS = get_game_levels()
-
-@app.route('/menu')
-def menu():
-    global GAME_LEVELS
-    GAME_LEVELS = get_game_levels()
-    
-    levels_list = [
-        {"name": data["name"], "key": key, "count": len(data["relations"])}
-        for key, data in GAME_LEVELS.items()
-    ]
-    return render_template('menu.html', levels=levels_list)
-
-
-@app.route('/game/<level_key>')
-def game(level_key):
-    if level_key not in GAME_LEVELS:
-        return redirect(url_for('menu'))
-
-    payload = GAME_LEVELS[level_key]
-    return render_template('game.html', payload=payload)
-
-
-@app.route('/simulador_atividade')
-def simulador_atividade():
-    return render_template('index.html')
-
-
-# -----------------------------------------------------------
-# EXECUÇÃO LOCAL
-# -----------------------------------------------------------
-if __name__ == '__main__':
+# =============================
+# Executar servidor
+# =============================
+if __name__ == "__main__":
     app.run(debug=True)

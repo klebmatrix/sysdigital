@@ -1,54 +1,63 @@
-from app import db
 from flask_login import UserMixin
-from datetime import datetime
+from backend.database import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
-# =================================
-# Admin
-# =================================
+# -----------------------
+# MODELO: ADMINISTRADOR
+# -----------------------
 class Admin(UserMixin, db.Model):
-    __tablename__ = 'admins'
-    email = db.Column(db.String, primary_key=True)
-    senha = db.Column(db.String, nullable=False)
+    __tablename__ = "admins"
+    email = db.Column(db.String(100), primary_key=True)
+    senha_hash = db.Column(db.String(200), nullable=False)
 
-# =================================
-# Professor
-# =================================
+    def __init__(self, email, senha):
+        self.email = email
+        self.set_senha(senha)
+
+    def set_senha(self, senha):
+        self.senha_hash = generate_password_hash(senha)
+
+    def verificar_senha(self, senha):
+        return check_password_hash(self.senha_hash, senha)
+
+    def get_id(self):
+        return self.email
+
+
+# -----------------------
+# MODELO: PROFESSOR
+# -----------------------
 class Professor(UserMixin, db.Model):
-    __tablename__ = 'professores'
-    email = db.Column(db.String, primary_key=True)
-    senha_inicial = db.Column(db.String, nullable=False)
-    expira_em = db.Column(db.Date, nullable=False)
+    __tablename__ = "professores"
+    email = db.Column(db.String(100), primary_key=True)
+    senha_hash = db.Column(db.String(200))
+    expira_em = db.Column(db.String(20))
 
-# =================================
-# Aluno
-# =================================
+    def set_senha(self, senha):
+        self.senha_hash = generate_password_hash(senha)
+
+    def verificar_senha(self, senha):
+        return check_password_hash(self.senha_hash, senha)
+
+    def get_id(self):
+        return self.email
+
+
+# -----------------------
+# MODELO: ALUNO
+# -----------------------
 class Aluno(UserMixin, db.Model):
-    __tablename__ = 'alunos'
-    email = db.Column(db.String, primary_key=True)
-    senha = db.Column(db.String, nullable=False)
-    turma = db.Column(db.String, nullable=False)
-    professor_email = db.Column(db.String, db.ForeignKey('professores.email', ondelete='CASCADE'))
+    __tablename__ = "alunos"
+    matricula = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120))
+    email = db.Column(db.String(120), unique=True)
+    senha_hash = db.Column(db.String(200))
 
-# =================================
-# Atividades
-# =================================
-class Atividade(db.Model):
-    __tablename__ = 'atividades'
-    id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String, nullable=False)
-    tipo = db.Column(db.String, nullable=False)  # 'multipla_escolha' ou 'resposta_correta'
-    gabarito = db.Column(db.JSON, nullable=False)
-    professor_email = db.Column(db.String, db.ForeignKey('professores.email', ondelete='CASCADE'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    def set_senha(self, senha):
+        self.senha_hash = generate_password_hash(senha)
 
-# =================================
-# Respostas
-# =================================
-class Resposta(db.Model):
-    __tablename__ = 'respostas'
-    id = db.Column(db.Integer, primary_key=True)
-    atividade_id = db.Column(db.Integer, db.ForeignKey('atividades.id', ondelete='CASCADE'))
-    aluno_email = db.Column(db.String, db.ForeignKey('alunos.email', ondelete='CASCADE'))
-    resposta = db.Column(db.JSON, nullable=False)
-    nota = db.Column(db.Integer)
-    enviada_em = db.Column(db.DateTime, default=datetime.utcnow)
+    def verificar_senha(self, senha):
+        return check_password_hash(self.senha_hash, senha)
+
+    def get_id(self):
+        return str(self.matricula)

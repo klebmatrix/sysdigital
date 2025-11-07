@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid d-flex justify-content-between">
+            <a class="navbar-brand fw-bold" href="#">📚 Escola Digital - Admin</a>
+
+            {% if session.get('admin_email') %}
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3 small">
+                    <strong>Logado como:</strong> {{ session['admin_email'] }}
+                </span>
+                <a href="{{ url_for('logout_admin') }}" class="btn btn-outline-light btn-sm">
+                    🚪 Sair
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% if not session.get('admin_email') %}
+        <div class="alert alert-warning text-center shadow-sm">
+            ⚠️ Sessão expirada! <a href="{{ url_for('login_admin') }}" class="alert-link">Faça login novamente.</a>
+        </div>
+        {% else %}
+        <div class="row">
+            <!-- Formulário de cadastro -->
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white fw-bold">
+                        Cadastrar Novo Professor
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('admin.cadastrar_professor') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">E-mail</label>
+                                <input type="email" name="email" class="form-control" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Senha Inicial</label>
+                                <input type="password" name="senha_inicial" class="form-control" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Expira em</label>
+                                <input type="date" name="expira_em" class="form-control" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100">Cadastrar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de professores -->
+            <div class="col-md-7">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        Professores Cadastrados
+                    </div>
+                    <div class="card-body">
+                        {% if professores %}
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>E-mail</th>
+                                    <th>Expira em</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prof in professores %}
+                                <tr>
+                                    <td>{{ prof.email }}</td>
+                                    <td>{{ prof.expira_em }}</td>
+                                    <td class="text-center">
+                                        <a href="{{ url_for('admin.excluir_professor', email=prof.email) }}" 
+                                           class="btn btn-danger btn-sm"
+                                           onclick="return confirm('Tem certeza que deseja excluir este professor?');">
+                                           Excluir
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="alert alert-secondary text-center">
+                            Nenhum professor cadastrado ainda.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer class="text-center text-muted mt-5 mb-3 small">
+        &copy; {{ 2025 }} Escola Digital - Sistema Administrativo
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
