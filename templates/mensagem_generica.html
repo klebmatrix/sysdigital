@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo(a)</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+        .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        h1 { color: #333; }
+        p { color: #666; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bem-vindo(a), Usuário(a) de {{ role }}!</h1>
+        <p>Seu papel é <strong>{{ role }}</strong>. No momento, não há um dashboard específico configurado para este papel além dos dashboards de Administrador e Professor.</p>
+        <p>Por favor, <a href="{{ url_for('logout') }}">clique aqui para sair</a>.</p>
+    </div>
+</body>
+</html>

@@ -2,20 +2,30 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
-# Carrega as variáveis de ambiente do arquivo .env
+# Carrega variáveis de ambiente do arquivo .env
 load_dotenv()
 
-# Inicializa o cliente Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+# Constantes de Tabela
+ADMINS_TABLE = "admins"
+PROFESSORES_TABLE = "professores"
+ALUNOS_TABLE = "alunos"
+ATIVIDADES_TABLE = "atividades"
+RESPOSTAS_TABLE = "respostas"
+GAME_LEVELS_TABLE = "game_levels"
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("ERRO: Variáveis de ambiente SUPABASE_URL ou SUPABASE_KEY não encontradas.")
-    # Em um ambiente de produção, você pode querer levantar uma exceção ou ter um fallback
-    supabase: Client = None
-else:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+def get_supabase_client() -> Client:
+    """Inicializa e retorna o cliente Supabase."""
+    try:
+        url: str = os.environ.get("SUPABASE_URL")
+        key: str = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            print("Erro: Variáveis de ambiente SUPABASE_URL ou SUPABASE_KEY não encontradas.")
+            return None
+        supabase: Client = create_client(url, key)
+        return supabase
+    except Exception as e:
+        print(f"Erro ao inicializar o cliente Supabase: {e}")
+        return None
 
-def get_supabase_client():
-    """Retorna o cliente Supabase inicializado."""
-    return supabase
+# O cliente será inicializado no main.py, mas a função está aqui para clareza.
+# O main.py deve importar e chamar get_supabase_client()
