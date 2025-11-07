@@ -1,2 +1,3 @@
-#!/usr/bin/env bash
-gunicorn app:app
+#!/bin/bash
+gunicorn main:app
+
