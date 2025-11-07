@@ -1,6 +1,14 @@
-Flask
-gunicorn
-reportlab
-supabase-client
-python-dotenv
-nltk
+# Dependências principais
+Flask==2.3.3
+requests==2.31.0
+Jinja2==3.1.2
+
+# Supabase — usando o pacote oficial atualizado
+supabase==2.23.0
+
+# Ou, se for usar o outro pacote legado:
+# supabase-client==0.2.5
+
+# Outras dependências
+gunicorn==21.2.0
+python-dotenv==1.0.0
