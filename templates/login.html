@@ -1,117 +1,99 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acesso ao Sistema</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: "Poppins", sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Escola Digital</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Poppins", sans-serif;
+            background: linear-gradient(135deg, #007bff, #00c6ff);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    body {
-      background: #f6f7fb;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: fadeIn 0.8s ease-in-out;
+        }
 
-    .login-box {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-      width: 360px;
-      padding: 40px 30px;
-      text-align: center;
-    }
+        h2 {
+            color: #333;
+            margin-bottom: 25px;
+        }
 
-    .login-box h2 {
-      font-size: 22px;
-      color: #1a1a1a;
-      margin-bottom: 5px;
-    }
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
 
-    .login-box p {
-      font-size: 14px;
-      color: #777;
-      margin-bottom: 30px;
-    }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background: #007bff;
+            color: white;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
 
-    .login-box input {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-      transition: border 0.3s ease;
-    }
+        button:hover {
+            background: #0056b3;
+        }
 
-    .login-box input:focus {
-      border-color: #5a4ff3;
-    }
+        .erro {
+            color: red;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
 
-    .login-box button {
-      width: 100%;
-      padding: 12px;
-      background: #5a4ff3;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    .login-box button:hover {
-      background: #473de0;
-    }
-
-    .login-box a {
-      display: block;
-      color: #5a4ff3;
-      font-size: 13px;
-      text-decoration: none;
-      margin-bottom: 20px;
-    }
-
-    .login-box a:hover {
-      text-decoration: underline;
-    }
-
-    .icon {
-      font-size: 42px;
-      color: #5a4ff3;
-      margin-bottom: 15px;
-    }
-
-    .error {
-      color: #ff5555;
-      font-size: 13px;
-      margin-bottom: 10px;
-    }
-  </style>
+        footer {
+            position: absolute;
+            bottom: 10px;
+            text-align: center;
+            width: 100%;
+            color: white;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
-  <div class="login-box">
-    <div class="icon">👤</div>
-    <h2>Acesso ao Sistema</h2>
-    <p>Entre com suas credenciais.</p>
+    <div class="login-container">
+        <h2>Login - Escola Digital</h2>
 
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
+        {% if erro %}
+            <p class="erro">{{ erro }}</p>
+        {% endif %}
 
-    <form method="POST" action="/login">
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="password" name="password" placeholder="Senha" required>
-      <a href="#">Verificar Ambiente</a>
-      <button type="submit">Entrar</button>
-    </form>
-  </div>
+        <form method="POST" action="{{ url_for('login') }}">
+            <input type="email" name="email" placeholder="E-mail" required>
+            <input type="password" name="senha" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+
+    <footer>© 2025 Escola Digital</footer>
 </body>
 </html>
