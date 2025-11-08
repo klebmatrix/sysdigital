@@ -1,7 +1,7 @@
 import os
 import io
 import datetime
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, send_file
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
@@ -9,95 +9,105 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 
 # -----------------------------------------------------------
-# CONFIGURAÇÃO GERAL
+# CONFIGURAÇÃO INICIAL
 # -----------------------------------------------------------
 
-load_dotenv()
-app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "chave-secreta-padrao")
+load_dotenv()  # Render já injeta as variáveis de ambiente automaticamente
 
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "chave-padrao-secreta")
+
+# Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL")
-SUPER_ADMIN_SENHA = os.getenv("SUPER_ADMIN_SENHA")
 
-supabase: Client | None = None
-try:
-    if SUPABASE_URL and SUPABASE_KEY:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("✅ Conexão Supabase estabelecida com sucesso.")
-    else:
-        print("⚠️ Supabase não configurada. Variáveis de ambiente ausentes.")
-except Exception as e:
-    print(f"❌ Erro ao conectar ao Supabase: {e}")
-
-# -----------------------------------------------------------
-# LOGIN E AUTENTICAÇÃO
-# -----------------------------------------------------------
-
-@app.route('/', methods=['GET'])
-def index():
-    if 'user' in session:
-        return redirect(url_for('menu'))
-    return render_template('login.html')
-
-
-@app.route('/login', methods=['POST'])
-def login():
-    email = request.form.get('email', '').strip().lower()
-    senha = request.form.get('password', '').strip()
-
-    if not email or not senha:
-        return render_template('login.html', error="E-mail e senha são obrigatórios.")
-
-    # ---- LOGIN DO ADMINISTRADOR ----
-    if email == SUPER_ADMIN_EMAIL and senha == SUPER_ADMIN_SENHA:
-        session['user'] = {
-            "email": email,
-            "role": "admin"
-        }
-        print("👑 Login de administrador bem-sucedido.")
-        return redirect(url_for('menu'))
-
-    # ---- LOGIN NORMAL VIA SUPABASE ----
+supabase: Client = None
+if SUPABASE_URL and SUPABASE_KEY:
     try:
-        response = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-        if response.user:
-            session['user'] = {
-                "email": email,
-                "id": response.user.id,
-                "role": "user"
-            }
-            print(f"✅ Login Supabase bem-sucedido: {email}")
-            return redirect(url_for('menu'))
-        else:
-            return render_template('login.html', error="E-mail ou senha incorretos.")
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase conectada com sucesso!")
     except Exception as e:
-        print("Erro Supabase:", e)
-        return render_template('login.html', error="Erro ao autenticar. Verifique suas credenciais.")
+        print(f"⚠️ Erro ao conectar Supabase: {e}")
+else:
+    print("⚠️ Supabase não configurada. Variáveis de ambiente ausentes.")
 
+# Admin do sistema
+SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL", "")
+SUPER_ADMIN_SENHA = os.getenv("SUPER_ADMIN_SENHA", "")
+
+# Banco de professores (simulado em memória)
+PROFESSORES_DB = {}
+
+# -----------------------------------------------------------
+# ROTA DE LOGIN
+# -----------------------------------------------------------
+
+@app.route('/')
+def index():
+    # Redireciona direto para o login
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        senha = request.form.get('password', '').strip()
+
+        # Validação simples do admin
+        if email == SUPER_ADMIN_EMAIL.lower() and senha == SUPER_ADMIN_SENHA:
+            session['usuario'] = email
+            return redirect(url_for('painel'))
+
+        return render_template('login.html', error="Credenciais inválidas.")
+
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
-    return redirect(url_for('index'))
+    session.clear()
+    return redirect(url_for('login'))
 
 # -----------------------------------------------------------
-# ROTAS PROTEGIDAS
+# ROTA PAINEL (somente logado)
 # -----------------------------------------------------------
 
-@app.route('/menu')
-def menu():
-    if 'user' not in session:
-        return redirect(url_for('index'))
-    return render_template('menu.html', user=session['user'])
+@app.route('/painel')
+def painel():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+    return render_template('painel.html', usuario=session['usuario'])
 
+# -----------------------------------------------------------
+# API DE GERENCIAMENTO DE PROFESSORES
+# -----------------------------------------------------------
 
-@app.route('/simulador_atividade')
-def simulador_atividade():
-    if 'user' not in session:
-        return redirect(url_for('index'))
-    return render_template('index.html', user=session['user'])
+@app.route('/api/cadastrar_professor', methods=['POST'])
+def cadastrar_professor():
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    senha_inicial = data.get('senha_inicial', '').strip()
+
+    if not email:
+        return jsonify({"success": False, "message": "E-mail não fornecido."}), 400
+
+    if not senha_inicial or len(senha_inicial) < 6:
+        return jsonify({"success": False, "message": "Senha inicial deve ter no mínimo 6 caracteres."}), 400
+
+    if email in PROFESSORES_DB:
+        return jsonify({"success": False, "message": f"Professor {email} já está cadastrado."}), 409
+
+    nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
+    PROFESSORES_DB[email] = {
+        "expira_em": nova_expiracao,
+        "senha_inicial": senha_inicial
+    }
+
+    return jsonify({
+        "success": True,
+        "message": f"Professor {email} cadastrado com sucesso. Expira em {nova_expiracao}.",
+        "email": email,
+        "professor_info": PROFESSORES_DB[email]
+    })
 
 # -----------------------------------------------------------
 # GERAR PDF
@@ -124,16 +134,15 @@ def gerar_pdf_atividade():
         ]
         for i, p in enumerate(perguntas, 1):
             story.append(Paragraph(f"{i}. {p.get('texto', '')}", styles['Normal']))
-
         doc.build(story)
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name=f"{titulo}.pdf", mimetype='application/pdf')
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # -----------------------------------------------------------
-# RODAR APP
+# INICIALIZAÇÃO
 # -----------------------------------------------------------
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
