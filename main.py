@@ -15,15 +15,14 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Rota: login
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
+
 def login():
     if request.method == 'POST':
         email = request.form['email']
         senha = request.form['senha']
 
-        # Verifica se é o admin direto do ambiente
         admin_email = os.environ.get("SUPER_ADMIN_EMAIL")
         admin_senha = os.environ.get("SUPER_ADMIN_SENHA")
 
@@ -32,20 +31,25 @@ def login():
             flash('Login de administrador bem-sucedido.', 'success')
             return redirect(url_for('admin'))
 
-        # Caso contrário, tenta autenticar pelo Supabase
         try:
-            user = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-            if user and user.user:
-                session['usuario'] = user.user.email
+            # Tentativa de autenticação Supabase (nova sintaxe)
+            resposta = supabase.auth.sign_in_with_password(
+                {"email": email, "password": senha}
+            )
+
+            if resposta.user:
+                session['usuario'] = resposta.user.email
                 flash('Login realizado com sucesso!', 'success')
                 return redirect(url_for('dashboard'))
             else:
                 flash('Usuário ou senha incorretos.', 'danger')
+
         except Exception as e:
-            print("Erro Supabase:", e)
-            flash('Erro ao autenticar no Supabase.', 'danger')
+            print("⚠️ ERRO LOGIN:", e)
+            flash('Erro ao autenticar. Verifique suas credenciais.', 'danger')
 
     return render_template('login.html')
+
 
 
 # Rota: dashboard (usuário comum)
