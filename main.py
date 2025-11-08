@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from rotes.admin import admin_bp
 from rotes.professor import prof_bp
 from rotes.aluno import aluno_bp
@@ -12,7 +12,7 @@ app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(prof_bp, url_prefix='/professor')
 app.register_blueprint(aluno_bp, url_prefix='/aluno')
 
-# Variáveis de ambiente para usuários
+# Usuários de teste
 USUARIOS = {
     'admin@example.com': 'admin123',
     'professor@example.com': 'prof123',
@@ -21,7 +21,6 @@ USUARIOS = {
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    from flask import request
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -37,7 +36,8 @@ def login():
                 return redirect(url_for('aluno.dashboard'))
         else:
             flash('Email ou senha inválidos.', 'danger')
-    return render_template('login.html')
+    # Mantém a tela original de login
+    return render_template('login.html', debug_env_url='#')
 
 @app.route('/logout')
 def logout():
