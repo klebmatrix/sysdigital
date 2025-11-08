@@ -1,8 +1,7 @@
-Flask
+Flask==2.3.3
 gunicorn
 reportlab
-supabase-client
+supabase
+aiohttp>=3.9.5
 python-dotenv
 nltk
-aiohttp
-aiohttp==3.9.5
