@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from dotenv import load_dotenv
+from rotes import admin, professor, aluno  # importando os blueprints
 
 load_dotenv()
 
@@ -8,72 +9,49 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_padrao_secreta')
 app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'True') == 'True'
 
-# Usuários permitidos (3 usuários)
+# Usuários permitidos (exemplo)
 USERS = {
-    os.environ.get('USER1_EMAIL'): os.environ.get('USER1_PASSWORD'),
-    os.environ.get('USER2_EMAIL'): os.environ.get('USER2_PASSWORD'),
-    os.environ.get('USER3_EMAIL'): os.environ.get('USER3_PASSWORD'),
+    os.environ.get('ADMIN_EMAIL'): 'admin',
+    os.environ.get('PROF_EMAIL'): 'professor',
+    os.environ.get('ALUNO_EMAIL'): 'aluno',
 }
 
-# Lista de professores cadastrados (em memória)
-professores = []
+# Registrar blueprints
+app.register_blueprint(admin.admin_bp)
+app.register_blueprint(professor.prof_bp)
+app.register_blueprint(aluno.aluno_bp)
 
-# Rota login
+# Tela de login
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
 
-        if email in USERS and USERS[email] == password:
-            session['admin_email'] = email
-            flash('Login bem-sucedido!', 'success')
-            return redirect(url_for('admin_dashboard'))
+        # Checa se o email existe
+        if email in USERS and password == '123':  # ou use senhas do .env
+            session['user_email'] = email
+            role = USERS[email]
+            if role == 'admin':
+                return redirect(url_for('admin.dashboard'))
+            elif role == 'professor':
+                return redirect(url_for('professor.dashboard'))
+            elif role == 'aluno':
+                return redirect(url_for('aluno.dashboard'))
         else:
-            flash('Email ou senha inválidos.', 'danger')
-    return render_template('admin.html')
+            flash('Email ou senha inválidos!', 'danger')
+            return redirect(url_for('login'))
 
-# Painel admin
-@app.route('/admin')
-def admin_dashboard():
-    if 'admin_email' not in session:
-        flash('Faça login para acessar o painel.', 'warning')
-        return redirect(url_for('login'))
-    return render_template('admin.html', professores=professores)
+    return render_template('login.html')
 
-# Logout
+
+# Logout geral
 @app.route('/logout')
 def logout():
-    session.pop('admin_email', None)
+    session.pop('user_email', None)
     flash('Você saiu com sucesso!', 'success')
     return redirect(url_for('login'))
 
-# Cadastrar professor
-@app.route('/admin/cadastrar', methods=['POST'])
-def cadastrar_professor():
-    if 'admin_email' not in session:
-        flash('Faça login para cadastrar.', 'warning')
-        return redirect(url_for('login'))
-
-    email = request.form.get('email')
-    senha_inicial = request.form.get('senha_inicial')
-    expira_em = request.form.get('expira_em')
-
-    professores.append({
-        'email': email,
-        'senha_inicial': senha_inicial,
-        'expira_em': expira_em
-    })
-    flash(f'Professor {email} cadastrado com sucesso!', 'success')
-    return redirect(url_for('admin_dashboard'))
-
-# Excluir professor
-@app.route('/admin/excluir/<email>')
-def excluir_professor(email):
-    global professores
-    professores = [p for p in professores if p['email'] != email]
-    flash(f'Professor {email} excluído.', 'success')
-    return redirect(url_for('admin_dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=app.config['DEBUG'])
