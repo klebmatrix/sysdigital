@@ -1,40 +1,28 @@
-# -----------------------------------------------------------
-# main.py — Flask + Supabase + Gerenciamento de Professores + PDF + Neurogame
-# -----------------------------------------------------------
-
 import io
-import os
 import datetime
 from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from supabase import create_client, Client
 
 # -----------------------------------------------------------
-# CONFIGURAÇÃO DO APP
+# INICIALIZAÇÃO DO APP
 # -----------------------------------------------------------
 
-app = Flask(__name__)  # ← ESTA LINHA PRECISA VIR ANTES DAS ROTAS
+app = Flask(__name__)
 
-# Banco temporário em memória (para testes)
+# Banco de dados simples em memória
 PROFESSORES_DB = {}
 
-# Configuração do Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-else:
-    supabase = None
-    print("⚠️ Supabase não configurado. Variáveis de ambiente ausentes.")
-
-GAME_LEVELS_TABLE = "game_levels"
-
+# Banco local de níveis do jogo (mock)
+GAME_LEVELS = {
+    "algebra": {"name": "Álgebra", "relations": ["expressões", "equações"]},
+    "geometria": {"name": "Geometria", "relations": ["ângulos", "áreas"]},
+    "calculo": {"name": "Cálculo", "relations": ["limites", "derivadas"]}
+}
 
 # -----------------------------------------------------------
-# FUNÇÃO DE ERRO
+# FUNÇÃO DE ERRO PADRÃO
 # -----------------------------------------------------------
 
 def render_error_debug(e):
@@ -126,7 +114,6 @@ def gerar_pdf_atividade():
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         styles = getSampleStyleSheet()
-
         story = [
             Paragraph(f"<b>{titulo}</b>", styles['Title']),
             Paragraph(f"<b>Turma:</b> {turma}", styles['Normal']),
@@ -134,50 +121,33 @@ def gerar_pdf_atividade():
             Paragraph(instrucoes, styles['Normal']),
             Spacer(1, 20)
         ]
-
         for i, p in enumerate(perguntas, 1):
             story.append(Paragraph(f"{i}. {p.get('texto', '')}", styles['Normal']))
-
         doc.build(story)
         buffer.seek(0)
-        
         return send_file(buffer, as_attachment=True, download_name=f"{titulo}.pdf", mimetype='application/pdf')
     except Exception as e:
         return render_error_debug(e)
 
 
 # -----------------------------------------------------------
-# FUNÇÕES DO NEUROGAME
+# ROTAS DO NEUROGAME (LOCAL)
 # -----------------------------------------------------------
-
-def get_game_levels():
-    if not supabase:
-        return {}
-    try:
-        response = supabase.table(GAME_LEVELS_TABLE).select("*").execute()
-        levels = {item['key']: item for item in response.data}
-        return levels
-    except Exception as e:
-        print("Erro ao carregar níveis do jogo:", e)
-        return {}
-
 
 @app.route('/menu')
 def menu():
-    levels = get_game_levels()
     levels_list = [
         {"name": data["name"], "key": key, "count": len(data.get("relations", []))}
-        for key, data in levels.items()
+        for key, data in GAME_LEVELS.items()
     ]
     return render_template('menu.html', levels=levels_list)
 
 
 @app.route('/game/<level_key>')
 def game(level_key):
-    levels = get_game_levels()
-    if level_key not in levels:
+    if level_key not in GAME_LEVELS:
         return redirect(url_for('menu'))
-    payload = levels[level_key]
+    payload = GAME_LEVELS[level_key]
     return render_template('game.html', payload=payload)
 
 
@@ -187,8 +157,17 @@ def simulador_atividade():
 
 
 # -----------------------------------------------------------
-# RODAR APP
+# ROTA PRINCIPAL
+# -----------------------------------------------------------
+
+@app.route('/')
+def index():
+    return "✅ App Flask rodando corretamente no Render (modo local, sem Supabase)."
+
+
+# -----------------------------------------------------------
+# EXECUTAR APLICAÇÃO
 # -----------------------------------------------------------
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
