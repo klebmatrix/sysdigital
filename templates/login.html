@@ -1,95 +1,60 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acesso ao Sistema</title>
+    <title>Login - SYS DIGITAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .login-card {
-            max-width: 400px;
-            width: 90%;
-            background-color: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-        .input-field {
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            width: 100%;
-            transition: border-color 0.2s;
-        }
-        .input-field:focus {
-            border-color: #3b82f6;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        .submit-button {
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        .submit-button:hover {
-            transform: translateY(-1px);
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f7fafc; }
     </style>
 </head>
-<body>
-    <div class="login-card">
-        <h1 class="text-3xl font-extrabold text-center text-gray-900 mb-6">Bem-vindo(a)</h1>
-        <p class="text-center text-gray-500 mb-8">Faça login para acessar seu painel.</p>
+<body class="flex items-center justify-center min-h-screen">
 
-        {% if error %}
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <strong class="font-bold">Erro de Login:</strong>
-                <span class="block sm:inline">{{ error }}</span>
+    <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl border-t-4 border-indigo-600">
+        <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.493 7.493 0 0 0-5.982 2.975m11.963 0a8.966 8.966 0 0 1-5.982 2.225A8.966 8.966 0 0 1 5.018 18.725m11.963 0A8.966 8.966 0 0 0 12 18.75m0-12a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+            </svg>
+            <h2 class="mt-3 text-3xl font-extrabold text-gray-900">
+                Acesso ao Sistema
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Entre com suas credenciais.
+            </p>
+        </div>
+        <form class="mt-8 space-y-6" action="/login" method="POST">
+            <input type="hidden" name="remember" value="true">
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <label for="username" class="sr-only">Usuário</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required
+                           class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="Email">
+                </div>
+                <div>
+                    <label for="password" class="sr-only">Senha</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required
+                           class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="Senha">
+                </div>
             </div>
-        {% endif %}
 
-        <form method="POST" action="{{ url_for('login_login') }}" class="space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="text-sm">
+                    <a href="{{ debug_env_url }}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                        Verificar Ambiente
+                    </a>
+                </div>
+            </div>
+
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                <input type="email" id="email" name="email" required placeholder="Seu e-mail" class="input-field">
+                <button type="submit"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Entrar
+                </button>
             </div>
-            
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                <input type="password" id="password" name="password" required placeholder="Sua senha" class="input-field">
-            </div>
-
-            <div>
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Entrar como</label>
-                <!-- O campo 'select' agora inclui a opção 'Administrador' -->
-                <select id="role" name="role" required class="input-field">
-                    <option value="professor">Professor(a)</option>
-                    <option value="aluno">Aluno(a)</option>
-                    <option value="admin">Administrador</option> 
-                </select>
-            </div>
-
-            <button type="submit" class="submit-button w-full bg-blue-600 text-white hover:bg-blue-700">
-                Entrar
-            </button>
         </form>
-
-        <p class="text-center text-sm text-gray-400 mt-6">
-            Credenciais Iniciais: 
-            <br>
-            **Admin:** admin@escola.com / (Use a senha configurada na sua hospedagem) 
-            <br>
-            *Professores e Alunos devem ser cadastrados pelo Administrador.*
-        </p>
     </div>
 </body>
 </html>
