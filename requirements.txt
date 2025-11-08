@@ -4,4 +4,4 @@ python-dotenv
 nltk
 reportlab
 aiohttp
-supabase-py==2.5.1
+supabase-py
