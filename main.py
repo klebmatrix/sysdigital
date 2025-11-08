@@ -1,65 +1,77 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from supabase import create_client
 import os
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from supabase import create_client, Client
 
+# Inicialização Flask
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta")
+app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta-local")
 
-# 🔗 Conexão com Supabase
+# Configuração Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# 🔐 Credenciais do admin
-ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL")
-ADMIN_SENHA = os.environ.get("SUPER_ADMIN_SENHA")
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise Exception("⚠️ Supabase não configurada! Variáveis de ambiente ausentes.")
 
-@app.route('/')
-def index():
-    if 'user' in session:
-        return render_template('index.html', user=session['user'])
-    return redirect(url_for('login'))
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Rota: login
+@app.route('/', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        senha = request.form.get('senha')
+        email = request.form['email']
+        senha = request.form['senha']
 
-        # 🧠 Verifica se é o admin
-        if email == ADMIN_EMAIL and senha == ADMIN_SENHA:
-            session['user'] = {'email': email, 'role': 'admin'}
-            flash('Bem-vindo, administrador!', 'success')
-            return redirect(url_for('admin_dashboard'))
+        # Verifica se é o admin direto do ambiente
+        admin_email = os.environ.get("SUPER_ADMIN_EMAIL")
+        admin_senha = os.environ.get("SUPER_ADMIN_SENHA")
 
-        # 🔎 Caso contrário, busca usuário comum no Supabase
+        if email == admin_email and senha == admin_senha:
+            session['usuario'] = 'admin'
+            flash('Login de administrador bem-sucedido.', 'success')
+            return redirect(url_for('admin'))
+
+        # Caso contrário, tenta autenticar pelo Supabase
         try:
-            response = supabase.table("usuarios").select("*").eq("email", email).eq("senha", senha).execute()
-            user = response.data[0] if response.data else None
-
-            if user:
-                session['user'] = user
+            user = supabase.auth.sign_in_with_password({"email": email, "password": senha})
+            if user and user.user:
+                session['usuario'] = user.user.email
                 flash('Login realizado com sucesso!', 'success')
-                return redirect(url_for('index'))
+                return redirect(url_for('dashboard'))
             else:
-                flash('Credenciais inválidas.', 'danger')
+                flash('Usuário ou senha incorretos.', 'danger')
         except Exception as e:
-            flash(f'Erro ao acessar o banco: {e}', 'danger')
+            print("Erro Supabase:", e)
+            flash('Erro ao autenticar no Supabase.', 'danger')
 
     return render_template('login.html')
 
-@app.route('/admin')
-def admin_dashboard():
-    if 'user' not in session or session['user'].get('role') != 'admin':
-        flash('Acesso restrito ao administrador.', 'warning')
-        return redirect(url_for('login'))
-    return render_template('admin.html', user=session['user'])
 
+# Rota: dashboard (usuário comum)
+@app.route('/dashboard')
+def dashboard():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+    return render_template('dashboard.html', usuario=session['usuario'])
+
+
+# Rota: admin
+@app.route('/admin')
+def admin():
+    if session.get('usuario') != 'admin':
+        return redirect(url_for('login'))
+    return render_template('admin.html')
+
+
+# Rota: logout
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
-    flash('Sessão encerrada com sucesso!', 'info')
+    session.clear()
+    flash('Você saiu da sessão.', 'info')
     return redirect(url_for('login'))
 
+
+# Início do servidor local
 if __name__ == '__main__':
     app.run(debug=True)
