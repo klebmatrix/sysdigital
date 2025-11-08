@@ -5,4 +5,4 @@ supabase
 aiohttp>=3.9.5
 python-dotenv
 nltk
-gunicorn main:app
+
