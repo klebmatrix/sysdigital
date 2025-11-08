@@ -1,105 +1,106 @@
+import os
 import io
 import datetime
-from flask import Flask, request, jsonify, render_template, redirect, url_for, send_file
-from reportlab.lib.pagesizes import letter
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session, send_file
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
 # -----------------------------------------------------------
-# INICIALIZAÇÃO DO APP
+# CONFIGURAÇÃO GERAL
 # -----------------------------------------------------------
 
+load_dotenv()
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "chave-secreta-padrao")
 
-# Banco de dados simples em memória
-PROFESSORES_DB = {}
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL")
+SUPER_ADMIN_SENHA = os.getenv("SUPER_ADMIN_SENHA")
 
-# Banco local de níveis do jogo (mock)
-GAME_LEVELS = {
-    "algebra": {"name": "Álgebra", "relations": ["expressões", "equações"]},
-    "geometria": {"name": "Geometria", "relations": ["ângulos", "áreas"]},
-    "calculo": {"name": "Cálculo", "relations": ["limites", "derivadas"]}
-}
-
-# -----------------------------------------------------------
-# FUNÇÃO DE ERRO PADRÃO
-# -----------------------------------------------------------
-
-def render_error_debug(e):
-    return jsonify({"success": False, "error": str(e)}), 500
-
+supabase: Client | None = None
+try:
+    if SUPABASE_URL and SUPABASE_KEY:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Conexão Supabase estabelecida com sucesso.")
+    else:
+        print("⚠️ Supabase não configurada. Variáveis de ambiente ausentes.")
+except Exception as e:
+    print(f"❌ Erro ao conectar ao Supabase: {e}")
 
 # -----------------------------------------------------------
-# ROTAS DE API DE GERENCIAMENTO DE PROFESSORES
+# LOGIN E AUTENTICAÇÃO
 # -----------------------------------------------------------
 
-@app.route('/api/cadastrar_professor', methods=['POST'])
-def cadastrar_professor():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    senha_inicial = data.get('senha_inicial', '').strip()
-    
-    if not email:
-        return jsonify({"success": False, "message": "E-mail não fornecido."}), 400
-
-    if not senha_inicial or len(senha_inicial) < 6:
-        return jsonify({"success": False, "message": "Senha inicial deve ter no mínimo 6 caracteres."}), 400
-
-    if email in PROFESSORES_DB:
-        return jsonify({"success": False, "message": f"Professor {email} já está cadastrado."}), 409
-
-    nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
-    PROFESSORES_DB[email] = {
-        "expira_em": nova_expiracao,
-        "senha_inicial": senha_inicial
-    }
-    
-    return jsonify({
-        "success": True, 
-        "message": f"Professor {email} cadastrado com sucesso. Expira em {nova_expiracao}.",
-        "email": email,
-        "professor_info": PROFESSORES_DB[email]
-    })
+@app.route('/', methods=['GET'])
+def index():
+    if 'user' in session:
+        return redirect(url_for('menu'))
+    return render_template('login.html')
 
 
-@app.route('/api/renovar_professor', methods=['POST'])
-def renovar_professor():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    
-    if not email or email not in PROFESSORES_DB:
-        return jsonify({"success": False, "message": f"Professor {email} não encontrado para renovação."}), 404
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email', '').strip().lower()
+    senha = request.form.get('password', '').strip()
 
-    nova_expiracao = (datetime.date.today() + datetime.timedelta(days=365)).isoformat()
-    PROFESSORES_DB[email]["expira_em"] = nova_expiracao
-    
-    return jsonify({
-        "success": True, 
-        "message": f"Licença de {email} renovada com sucesso. Nova expiração: {nova_expiracao}.",
-        "email": email,
-        "nova_data": nova_expiracao
-    })
+    if not email or not senha:
+        return render_template('login.html', error="E-mail e senha são obrigatórios.")
+
+    # ---- LOGIN DO ADMINISTRADOR ----
+    if email == SUPER_ADMIN_EMAIL and senha == SUPER_ADMIN_SENHA:
+        session['user'] = {
+            "email": email,
+            "role": "admin"
+        }
+        print("👑 Login de administrador bem-sucedido.")
+        return redirect(url_for('menu'))
+
+    # ---- LOGIN NORMAL VIA SUPABASE ----
+    try:
+        response = supabase.auth.sign_in_with_password({"email": email, "password": senha})
+        if response.user:
+            session['user'] = {
+                "email": email,
+                "id": response.user.id,
+                "role": "user"
+            }
+            print(f"✅ Login Supabase bem-sucedido: {email}")
+            return redirect(url_for('menu'))
+        else:
+            return render_template('login.html', error="E-mail ou senha incorretos.")
+    except Exception as e:
+        print("Erro Supabase:", e)
+        return render_template('login.html', error="Erro ao autenticar. Verifique suas credenciais.")
 
 
-@app.route('/api/excluir_professor', methods=['POST'])
-def excluir_professor():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower()
-    
-    if not email or email not in PROFESSORES_DB:
-        return jsonify({"success": False, "message": f"Professor {email} não encontrado para exclusão."}), 404
-
-    del PROFESSORES_DB[email]
-    
-    return jsonify({
-        "success": True, 
-        "message": f"Professor {email} e dados associados excluídos com sucesso.",
-        "email": email
-    })
-
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('index'))
 
 # -----------------------------------------------------------
-# API PARA GERAR PDF DE ATIVIDADE
+# ROTAS PROTEGIDAS
+# -----------------------------------------------------------
+
+@app.route('/menu')
+def menu():
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    return render_template('menu.html', user=session['user'])
+
+
+@app.route('/simulador_atividade')
+def simulador_atividade():
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    return render_template('index.html', user=session['user'])
+
+# -----------------------------------------------------------
+# GERAR PDF
 # -----------------------------------------------------------
 
 @app.route('/api/gerar_pdf_atividade', methods=['POST'])
@@ -123,50 +124,15 @@ def gerar_pdf_atividade():
         ]
         for i, p in enumerate(perguntas, 1):
             story.append(Paragraph(f"{i}. {p.get('texto', '')}", styles['Normal']))
+
         doc.build(story)
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name=f"{titulo}.pdf", mimetype='application/pdf')
     except Exception as e:
-        return render_error_debug(e)
-
-
-# -----------------------------------------------------------
-# ROTAS DO NEUROGAME (LOCAL)
-# -----------------------------------------------------------
-
-@app.route('/menu')
-def menu():
-    levels_list = [
-        {"name": data["name"], "key": key, "count": len(data.get("relations", []))}
-        for key, data in GAME_LEVELS.items()
-    ]
-    return render_template('menu.html', levels=levels_list)
-
-
-@app.route('/game/<level_key>')
-def game(level_key):
-    if level_key not in GAME_LEVELS:
-        return redirect(url_for('menu'))
-    payload = GAME_LEVELS[level_key]
-    return render_template('game.html', payload=payload)
-
-
-@app.route('/simulador_atividade')
-def simulador_atividade():
-    return render_template('index.html')
-
+        return jsonify({"success": False, "error": str(e)})
 
 # -----------------------------------------------------------
-# ROTA PRINCIPAL
-# -----------------------------------------------------------
-
-@app.route('/')
-def index():
-    return "✅ App Flask rodando corretamente no Render (modo local, sem Supabase)."
-
-
-# -----------------------------------------------------------
-# EXECUTAR APLICAÇÃO
+# RODAR APP
 # -----------------------------------------------------------
 
 if __name__ == '__main__':
