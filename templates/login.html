@@ -1,99 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Escola Digital</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: "Poppins", sans-serif;
-            background: linear-gradient(135deg, #007bff, #00c6ff);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            animation: fadeIn 0.8s ease-in-out;
-        }
-
-        h2 {
-            color: #333;
-            margin-bottom: 25px;
-        }
-
-        input[type="email"],
-        input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 15px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            background: #007bff;
-            color: white;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        .erro {
-            color: red;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        footer {
-            position: absolute;
-            bottom: 10px;
-            text-align: center;
-            width: 100%;
-            color: white;
-            font-size: 13px;
-        }
-    </style>
+    <title>Login</title>
 </head>
 <body>
-    <div class="login-container">
-        <h2>Login - Escola Digital</h2>
-
-        {% if erro %}
-            <p class="erro">{{ erro }}</p>
-        {% endif %}
-
-        <form method="POST" action="{{ url_for('login') }}">
-            <input type="email" name="email" placeholder="E-mail" required>
-            <input type="password" name="senha" placeholder="Senha" required>
-            <button type="submit">Entrar</button>
-        </form>
-    </div>
-
-    <footer>© 2025 Escola Digital</footer>
+    <h2>Login Admin</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li style="color: {% if category == 'error' %}red{% else %}green{% endif %};">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+        Usuário: <input type="text" name="username"><br>
+        Senha: <input type="password" name="password"><br>
+        <button type="submit">Entrar</button>
+    </form>
 </body>
 </html>
