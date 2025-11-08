@@ -1,5 +1,9 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from dotenv import load_dotenv
+
+# Carregar variáveis do .env
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -22,7 +26,7 @@ def login():
 
         if not email or not password:
             flash('Preencha todos os campos!', 'error')
-            return redirect(url_for('login'))
+            return render_template('login.html')
 
         if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
             session['user'] = email
@@ -30,7 +34,7 @@ def login():
             return redirect(url_for('index'))
         else:
             flash('Email ou senha inválidos.', 'error')
-            return redirect(url_for('login'))
+            return render_template('login.html')
 
     return render_template('login.html')
 
