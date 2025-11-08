@@ -1,61 +1,49 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from dotenv import load_dotenv
-
-# Carrega variáveis do .env
-load_dotenv()
-
-# Importando blueprints corretamente
+from flask import Flask, render_template, redirect, url_for, session, flash
 from rotes.admin import admin_bp
 from rotes.professor import prof_bp
 from rotes.aluno import aluno_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_padrao_secreta')
-app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'True') == 'True'
 
-# Registrar blueprints
-app.register_blueprint(admin_bp)
-app.register_blueprint(prof_bp)
-app.register_blueprint(aluno_bp)
+# Blueprints
+app.register_blueprint(admin_bp, url_prefix='/admin')
+app.register_blueprint(prof_bp, url_prefix='/professor')
+app.register_blueprint(aluno_bp, url_prefix='/aluno')
 
-# Usuários (pode colocar senhas no .env)
-USERS = {
-    os.environ.get('ADMIN_EMAIL', 'admin@example.com'): 'admin',
-    os.environ.get('PROF_EMAIL', 'prof@example.com'): 'professor',
-    os.environ.get('ALUNO_EMAIL', 'aluno@example.com'): 'aluno'
+# Variáveis de ambiente para usuários
+USUARIOS = {
+    'admin@example.com': 'admin123',
+    'professor@example.com': 'prof123',
+    'aluno@example.com': 'aluno123'
 }
 
-# Tela de login
 @app.route('/', methods=['GET', 'POST'])
 def login():
+    from flask import request
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-
-        # Verifica usuário e senha
-        if email in USERS and password == '123':  # ou coloque senhas reais no .env
-            session['user_email'] = email
-            role = USERS[email]
-            # Redireciona para o painel correto
-            if role == 'admin':
+        if email in USUARIOS and USUARIOS[email] == password:
+            session['user'] = email
+            flash('Login bem-sucedido!', 'success')
+            # Redireciona conforme o tipo de usuário
+            if email == 'admin@example.com':
                 return redirect(url_for('admin.dashboard'))
-            elif role == 'professor':
+            elif email == 'professor@example.com':
                 return redirect(url_for('professor.dashboard'))
-            elif role == 'aluno':
+            else:
                 return redirect(url_for('aluno.dashboard'))
         else:
-            flash('Email ou senha inválidos!', 'danger')
-            return redirect(url_for('login'))
-
+            flash('Email ou senha inválidos.', 'danger')
     return render_template('login.html')
 
-# Logout geral
 @app.route('/logout')
 def logout():
-    session.pop('user_email', None)
+    session.pop('user', None)
     flash('Você saiu com sucesso!', 'success')
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=app.config['DEBUG'])
+    app.run(debug=True)
