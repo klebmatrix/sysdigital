@@ -19,3 +19,5 @@ else:
 def get_supabase_client():
     """Retorna o cliente Supabase inicializado."""
     return supabase
+
+from supabase import create_client, Client
