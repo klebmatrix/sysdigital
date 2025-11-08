@@ -1,49 +1,71 @@
+# main.py
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from rotes.admin import admin_bp
-from rotes.professor import prof_bp
-from rotes.aluno import aluno_bp
+from rotes.professor import verificar_professor
+from rotes.aluno import verificar_aluno
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_padrao_secreta')
+app.secret_key = os.environ.get("SECRET_KEY", "supersecret")
 
-# Blueprints
-app.register_blueprint(admin_bp, url_prefix='/admin')
-app.register_blueprint(prof_bp, url_prefix='/professor')
-app.register_blueprint(aluno_bp, url_prefix='/aluno')
+# Admin
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin")  # opcional, default "admin"
 
-# Usuários de teste
-USUARIOS = {
-    'admin@example.com': 'admin123',
-    'professor@example.com': 'prof123',
-    'aluno@example.com': 'aluno123'
-}
-
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        if email in USUARIOS and USUARIOS[email] == password:
-            session['user'] = email
-            flash('Login bem-sucedido!', 'success')
-            # Redireciona conforme o tipo de usuário
-            if email == 'admin@example.com':
-                return redirect(url_for('admin.dashboard'))
-            elif email == 'professor@example.com':
-                return redirect(url_for('professor.dashboard'))
-            else:
-                return redirect(url_for('aluno.dashboard'))
-        else:
-            flash('Email ou senha inválidos.', 'danger')
-    # Mantém a tela original de login
-    return render_template('login.html', debug_env_url='#')
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
 
-@app.route('/logout')
+        # Login Admin
+        if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
+            session["user_role"] = "admin"
+            session["user_email"] = email
+            return redirect(url_for("admin_dashboard"))
+
+        # Login Professor
+        if verificar_professor(email, password):
+            session["user_role"] = "professor"
+            session["user_email"] = email
+            return redirect(url_for("professor_dashboard"))
+
+        # Login Aluno
+        if verificar_aluno(email, password):
+            session["user_role"] = "aluno"
+            session["user_email"] = email
+            return redirect(url_for("aluno_dashboard"))
+
+        flash("Credenciais inválidas!", "danger")
+        return redirect(url_for("login"))
+
+    return render_template("login.html")
+
+# Dashboards
+@app.route("/admin")
+def admin_dashboard():
+    if session.get("user_role") != "admin":
+        flash("Acesso negado!", "danger")
+        return redirect(url_for("login"))
+    return render_template("admin.html")
+
+@app.route("/professor")
+def professor_dashboard():
+    if session.get("user_role") != "professor":
+        flash("Acesso negado!", "danger")
+        return redirect(url_for("login"))
+    return render_template("professor.html")
+
+@app.route("/aluno")
+def aluno_dashboard():
+    if session.get("user_role") != "aluno":
+        flash("Acesso negado!", "danger")
+        return redirect(url_for("login"))
+    return render_template("aluno.html")
+
+@app.route("/logout")
 def logout():
-    session.pop('user', None)
-    flash('Você saiu com sucesso!', 'success')
-    return redirect(url_for('login'))
+    session.clear()
+    return redirect(url_for("login"))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
