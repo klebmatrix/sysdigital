@@ -3,11 +3,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 
 app = Flask(__name__)
 
-# Configurações via variáveis de ambiente
+# Variáveis de ambiente
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_padrao_secreta')
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
-
 app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'True') == 'True'
 
 @app.route('/')
@@ -33,6 +32,7 @@ def login():
             flash('Usuário ou senha inválidos.', 'error')
             return redirect(url_for('login'))
 
+    # Mantém exatamente a tela de login que você já tinha
     return render_template('login.html')
 
 @app.route('/logout')
