@@ -1,6 +1,6 @@
 Flask
 gunicorn
 reportlab
-supabase-client
-python-dotenv
 nltk
+supabase-py
+python-dotenv
