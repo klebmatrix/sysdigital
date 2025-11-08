@@ -1,9 +1,6 @@
 import os
 from supabase import create_client, Client
-from dotenv import load_dotenv
 
-# Carrega variáveis de ambiente do arquivo .env
-load_dotenv()
 
 # Constantes de Tabela
 ADMINS_TABLE = "admins"

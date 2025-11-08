@@ -1,0 +1,50 @@
+2025-11-07T15:07:26.923976188Z              ~~~^^
+2025-11-07T15:07:26.923981419Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/app/wsgiapp.py", line 67, in run
+2025-11-07T15:07:26.923986929Z     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]").run()
+2025-11-07T15:07:26.923989699Z     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+2025-11-07T15:07:26.923992509Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/app/base.py", line 236, in run
+2025-11-07T15:07:26.92399512Z     super().run()
+2025-11-07T15:07:26.9239978Z     ~~~~~~~~~~~^^
+2025-11-07T15:07:26.92400071Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/app/base.py", line 72, in run
+2025-11-07T15:07:26.92400338Z     Arbiter(self).run()
+2025-11-07T15:07:26.92400605Z     ~~~~~~~^^^^^^
+2025-11-07T15:07:26.92400871Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/arbiter.py", line 58, in __init__
+2025-11-07T15:07:26.924011201Z     self.setup(app)
+2025-11-07T15:07:26.924013591Z     ~~~~~~~~~~^^^^^
+2025-11-07T15:07:26.924016031Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/arbiter.py", line 118, in setup
+2025-11-07T15:07:26.924018591Z     self.app.wsgi()
+2025-11-07T15:07:26.924021011Z     ~~~~~~~~~~~~~^^
+2025-11-07T15:07:26.924023831Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/app/base.py", line 67, in wsgi
+2025-11-07T15:07:26.924026971Z     self.callable = self.load()
+2025-11-07T15:07:26.924029552Z                     ~~~~~~~~~^^
+2025-11-07T15:07:26.924032082Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/app/wsgiapp.py", line 58, in load
+2025-11-07T15:07:26.924035152Z     return self.load_wsgiapp()
+2025-11-07T15:07:26.924037732Z            ~~~~~~~~~~~~~~~~~^^
+2025-11-07T15:07:26.924062664Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/app/wsgiapp.py", line 48, in load_wsgiapp
+2025-11-07T15:07:26.924070594Z     return util.import_app(self.app_uri)
+2025-11-07T15:07:26.924074184Z            ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+2025-11-07T15:07:26.924077554Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/gunicorn/util.py", line 371, in import_app
+2025-11-07T15:07:26.924079514Z     mod = importlib.import_module(module)
+2025-11-07T15:07:26.924081225Z   File "/opt/render/project/python/Python-3.13.4/lib/python3.13/importlib/__init__.py", line 88, in import_module
+2025-11-07T15:07:26.924083505Z     return _bootstrap._gcd_import(name[level:], package, level)
+2025-11-07T15:07:26.924085125Z            ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07T15:07:26.924087495Z   File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+2025-11-07T15:07:26.924089275Z   File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+2025-11-07T15:07:26.924091005Z   File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+2025-11-07T15:07:26.924092675Z   File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+2025-11-07T15:07:26.924103856Z   File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+2025-11-07T15:07:26.924105786Z   File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+2025-11-07T15:07:26.924107446Z   File "/opt/render/project/src/main.py", line 10, in <module>
+2025-11-07T15:07:26.924109086Z     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+2025-11-07T15:07:26.924119747Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/supabase/_sync/client.py", line 369, in create_client
+2025-11-07T15:07:26.924122377Z     return SyncClient.create(
+2025-11-07T15:07:26.924124067Z            ~~~~~~~~~~~~~~~~~^
+2025-11-07T15:07:26.924125797Z         supabase_url=supabase_url, supabase_key=supabase_key, options=options
+2025-11-07T15:07:26.924127497Z         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07T15:07:26.924129168Z     )
+2025-11-07T15:07:26.924130908Z     ^
+2025-11-07T15:07:26.924132648Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/supabase/_sync/client.py", line 101, in create
+2025-11-07T15:07:26.924134378Z     client = cls(supabase_url, supabase_key, options)
+2025-11-07T15:07:26.924136118Z   File "/opt/render/project/src/.venv/lib/python3.13/site-packages/supabase/_sync/client.py", line 53, in __init__
+2025-11-07T15:07:26.924137798Z     raise SupabaseException("supabase_url is required")
+2025-11-07T15:07:26.924139568Z supabase._sync.client.SupabaseException: supabase_url is required
