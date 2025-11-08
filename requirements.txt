@@ -2,7 +2,6 @@ Flask==2.3.3
 gunicorn
 reportlab
 supabase
-aiohttp>=3.9.5
+aiohttp
 python-dotenv
 nltk
-
