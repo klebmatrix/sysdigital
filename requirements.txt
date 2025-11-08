@@ -1,6 +1,7 @@
 Flask
 gunicorn
 reportlab
-nltk
-supabase-py
+supabase-client
 python-dotenv
+nltk
+aiohttp
