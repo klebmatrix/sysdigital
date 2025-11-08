@@ -1,102 +1,65 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from supabase import create_client
 import os
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-from supabase import create_client, Client
-from datetime import timedelta
-
-# -----------------------------------------------------------
-# CONFIGURAÇÃO DO FLASK
-# -----------------------------------------------------------
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "chave_secreta_local")
-app.permanent_session_lifetime = timedelta(hours=4)
+app.secret_key = os.environ.get("SECRET_KEY", "chave-secreta")
 
-# -----------------------------------------------------------
-# CONFIGURAÇÃO SUPABASE
-# -----------------------------------------------------------
+# 🔗 Conexão com Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL")
-SUPER_ADMIN_SENHA = os.getenv("SUPER_ADMIN_SENHA")
+# 🔐 Credenciais do admin
+ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL")
+ADMIN_SENHA = os.environ.get("SUPER_ADMIN_SENHA")
 
-supabase: Client = None
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-else:
-    print("⚠️  Supabase não configurada. Variáveis de ambiente ausentes.")
-
-# -----------------------------------------------------------
-# LOGIN REQUIRED DECORATOR
-# -----------------------------------------------------------
-
-from functools import wraps
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "user_email" not in session:
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated_function
-
-# -----------------------------------------------------------
-# ROTA DE LOGIN
-# -----------------------------------------------------------
-
-@app.route("/", methods=["GET", "POST"])
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        senha = request.form.get("senha", "").strip()
-
-        if not email or not senha:
-            return render_template("login.html", erro="Preencha todos os campos!")
-
-        # 🔑 Verifica se é admin do ambiente
-        if email == SUPER_ADMIN_EMAIL and senha == SUPER_ADMIN_SENHA:
-            session["user_email"] = email
-            session["is_admin"] = True
-            return redirect(url_for("index"))
-
-        # 🔐 Verifica Supabase (usuário normal)
-        if supabase:
-            try:
-                response = supabase.auth.sign_in_with_password({"email": email, "password": senha})
-                if response.user:
-                    session["user_email"] = email
-                    session["is_admin"] = False
-                    return redirect(url_for("index"))
-            except Exception:
-                pass
-
-        return render_template("login.html", erro="E-mail ou senha inválidos!")
-
-    return render_template("login.html")
-
-# -----------------------------------------------------------
-# ROTA PRINCIPAL (PROTEGIDA)
-# -----------------------------------------------------------
-
-@app.route("/index")
-@login_required
+@app.route('/')
 def index():
-    email = session.get("user_email")
-    return render_template("index.html", email=email)
+    if 'user' in session:
+        return render_template('index.html', user=session['user'])
+    return redirect(url_for('login'))
 
-# -----------------------------------------------------------
-# LOGOUT
-# -----------------------------------------------------------
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        senha = request.form.get('senha')
 
-@app.route("/logout", methods=["POST"])
+        # 🧠 Verifica se é o admin
+        if email == ADMIN_EMAIL and senha == ADMIN_SENHA:
+            session['user'] = {'email': email, 'role': 'admin'}
+            flash('Bem-vindo, administrador!', 'success')
+            return redirect(url_for('admin_dashboard'))
+
+        # 🔎 Caso contrário, busca usuário comum no Supabase
+        try:
+            response = supabase.table("usuarios").select("*").eq("email", email).eq("senha", senha).execute()
+            user = response.data[0] if response.data else None
+
+            if user:
+                session['user'] = user
+                flash('Login realizado com sucesso!', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Credenciais inválidas.', 'danger')
+        except Exception as e:
+            flash(f'Erro ao acessar o banco: {e}', 'danger')
+
+    return render_template('login.html')
+
+@app.route('/admin')
+def admin_dashboard():
+    if 'user' not in session or session['user'].get('role') != 'admin':
+        flash('Acesso restrito ao administrador.', 'warning')
+        return redirect(url_for('login'))
+    return render_template('admin.html', user=session['user'])
+
+@app.route('/logout')
 def logout():
-    session.clear()
-    return redirect(url_for("login"))
+    session.pop('user', None)
+    flash('Sessão encerrada com sucesso!', 'info')
+    return redirect(url_for('login'))
 
-# -----------------------------------------------------------
-# INÍCIO DO APP
-# -----------------------------------------------------------
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
