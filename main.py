@@ -1,43 +1,31 @@
-from flask import Flask, render_template, request, redirect, url_for
-from routes.professor import verificar_professor, cadastrar_professor
-from routes.admin import verificar_admin
-from routes.aluno import verificar_aluno
+import os
+from flask import Flask, request, session, redirect, url_for, flash, render_template
 
 app = Flask(__name__)
-app.secret_key = "uma_chave_secreta_qualquer"
+app.secret_key = os.environ.get("SECRET_KEY")  # pega a secret do Render
 
-# Rota inicial: login
-@app.route("/", methods=["GET", "POST"])
+SUPER_ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL")
+SUPER_ADMIN_SENHA = os.environ.get("SUPER_ADMIN_SENHA")
+
+# Função de verificação do super admin
+def verificar_super_admin(email, senha):
+    return email == SUPER_ADMIN_EMAIL and senha == SUPER_ADMIN_SENHA
+
+# Rota de login
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        usuario = request.form.get("usuario")
-        senha = request.form.get("senha")
-
-        # Verifica tipo de usuário
-        if verificar_admin(usuario, senha):
-            return redirect(url_for("dashboard_admin"))
-        elif verificar_professor(usuario, senha):
-            return redirect(url_for("dashboard_professor"))
-        elif verificar_aluno(usuario, senha):
-            return redirect(url_for("dashboard_aluno"))
+        email = request.form["email"]
+        senha = request.form["senha"]
+        if verificar_super_admin(email, senha):
+            session["admin"] = True
+            return redirect(url_for("dashboard"))
         else:
-            return render_template("login.html", erro="Usuário ou senha inválidos")
-
+            flash("Credenciais incorretas!")
     return render_template("login.html")
 
-# Dashboards de exemplo
-@app.route("/dashboard/admin")
-def dashboard_admin():
-    return render_template("dashboard.html", tipo="Admin")
-
-@app.route("/dashboard/professor")
-def dashboard_professor():
-    return render_template("dashboard.html", tipo="Professor")
-
-@app.route("/dashboard/aluno")
-def dashboard_aluno():
-    return render_template("dashboard.html", tipo="Aluno")
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.route("/dashboard")
+def dashboard():
+    if not session.get("admin"):
+        return redirect(url_for("login"))
+    return "Bem-vindo ao painel do Super Admin!"
