@@ -1,9 +1,15 @@
-# Aqui você conecta ao banco de dados real, mas para teste vamos simular
+from flask_sqlalchemy import SQLAlchemy
 
-def verificar_professor(email, senha):
-    # Substitua pelo seu DB real
-    return email == "professor@teste.com" and senha == "123456"
+db = SQLAlchemy()
 
-def verificar_aluno(email, senha):
-    # Substitua pelo seu DB real
-    return email == "aluno@teste.com" and senha == "123456"
+class Professor(db.Model):
+    __tablename__ = 'professores'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    # outros campos aqui
+
+class Aluno(db.Model):
+    __tablename__ = 'alunos'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    # outros campos aqui
