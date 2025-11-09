@@ -4,5 +4,5 @@ python-dotenv==1.0.1
 nltk==3.9.1
 reportlab==4.2.5
 aiohttp==3.9.5
-supabase-client==0.2.5
+supabase
 Flask-SQLAlchemy==3.0.5
