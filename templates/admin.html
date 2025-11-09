@@ -18,7 +18,7 @@
                 <span class="text-white me-3 small">
                     <strong>Logado como:</strong> {{ session['admin_email'] }}
                 </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+                <a href="{{ url_for('logout_admin') }}" class="btn btn-outline-light btn-sm">
                     🚪 Sair
                 </a>
             </div>
@@ -42,7 +42,7 @@
 
         {% if not session.get('admin_email') %}
         <div class="alert alert-warning text-center shadow-sm">
-            ⚠️ Sessão expirada! <a href="{{ url_for('login') }}" class="alert-link">Faça login novamente.</a>
+            ⚠️ Sessão expirada! <a href="{{ url_for('login_admin') }}" class="alert-link">Faça login novamente.</a>
         </div>
         {% else %}
         <div class="row">
@@ -53,7 +53,7 @@
                         Cadastrar Novo Professor
                     </div>
                     <div class="card-body">
-                        <form action="{{ url_for('cadastrar_professor') }}" method="POST">
+                        <form action="{{ url_for('admin.cadastrar_professor') }}" method="POST">
                             <div class="mb-3">
                                 <label class="form-label">E-mail</label>
                                 <input type="email" name="email" class="form-control" required>
@@ -97,7 +97,7 @@
                                     <td>{{ prof.email }}</td>
                                     <td>{{ prof.expira_em }}</td>
                                     <td class="text-center">
-                                        <a href="{{ url_for('excluir_professor', email=prof.email) }}" 
+                                        <a href="{{ url_for('admin.excluir_professor', email=prof.email) }}" 
                                            class="btn btn-danger btn-sm"
                                            onclick="return confirm('Tem certeza que deseja excluir este professor?');">
                                            Excluir

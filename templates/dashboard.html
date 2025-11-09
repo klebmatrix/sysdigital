@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>Painel - Neuro Games</title>
 </head>
-<body class="bg-gray-100 p-10">
-    <h1 class="text-3xl font-bold mb-5">Dashboard - Usuário: {{ user }}</h1>
-    <a href="{{ url_for('logout') }}" class="text-indigo-600 hover:underline">Sair</a>
+<body>
+  <h1>Bem-vindo ao Painel {{ tipo|capitalize }}</h1>
+  <a href="{{ url_for('logout') }}">Sair</a>
+  <br><br>
+  <a href="/game">Jogar Neuro Games</a>
 </body>
 </html>
