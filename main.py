@@ -6,6 +6,12 @@ from routes.aluno import verificar_aluno
 app = Flask(__name__)
 
 @app.route('/')
+def index():
+    return "Página inicial"
+
+app = Flask(__name__)
+
+@app.route('/')
 def login():
     return render_template('login.html')
 
