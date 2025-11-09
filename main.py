@@ -4,45 +4,40 @@ from routes.admin import verificar_admin
 from routes.aluno import verificar_aluno
 
 app = Flask(__name__)
+app.secret_key = "uma_chave_secreta_qualquer"
 
-@app.route('/')
-def index():
-    return "Página inicial"
-
-app = Flask(__name__)
-
-@app.route('/')
+# Rota inicial: login
+@app.route("/", methods=["GET", "POST"])
 def login():
-    return render_template('login.html')
+    if request.method == "POST":
+        usuario = request.form.get("usuario")
+        senha = request.form.get("senha")
 
-@app.route('/login', methods=['POST'])
-def login_post():
-    usuario = request.form['usuario']
-    senha = request.form['senha']
-    if verificar_admin(usuario, senha):
-        return redirect(url_for('admin_dashboard'))
-    elif verificar_professor(usuario, senha):
-        return redirect(url_for('professor_dashboard'))
-    else:
-        return "Usuário ou senha incorretos"
+        # Verifica tipo de usuário
+        if verificar_admin(usuario, senha):
+            return redirect(url_for("dashboard_admin"))
+        elif verificar_professor(usuario, senha):
+            return redirect(url_for("dashboard_professor"))
+        elif verificar_aluno(usuario, senha):
+            return redirect(url_for("dashboard_aluno"))
+        else:
+            return render_template("login.html", erro="Usuário ou senha inválidos")
 
-@app.route('/admin_dashboard')
-def admin_dashboard():
-    return render_template('admin_dashboard.html')
+    return render_template("login.html")
 
-@app.route('/professor_dashboard')
-def professor_dashboard():
-    return render_template('professor_dashboard.html')
+# Dashboards de exemplo
+@app.route("/dashboard/admin")
+def dashboard_admin():
+    return render_template("dashboard.html", tipo="Admin")
 
-@app.route('/cadastrar_professor', methods=['GET', 'POST'])
-def cadastrar_professor_route():
-    if request.method == 'POST':
-        nome = request.form['nome']
-        usuario = request.form['usuario']
-        senha = request.form['senha']
-        cadastrar_professor(nome, usuario, senha)
-        return redirect(url_for('professor_dashboard'))
-    return render_template('cadastrar_professor.html')
+@app.route("/dashboard/professor")
+def dashboard_professor():
+    return render_template("dashboard.html", tipo="Professor")
 
-if __name__ == '__main__':
+@app.route("/dashboard/aluno")
+def dashboard_aluno():
+    return render_template("dashboard.html", tipo="Aluno")
+
+
+if __name__ == "__main__":
     app.run(debug=True)
