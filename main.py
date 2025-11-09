@@ -1,59 +1,57 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from models import verificar_professor, verificar_aluno  # funções do seu models.py
 
-# ====================================================
-# CONFIGURAÇÃO DO FLASK
-# ====================================================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "supersecret")  # chave secreta do Flask
+app.secret_key = os.environ.get("SECRET_KEY", "minha_chave_secreta")
 
-# ====================================================
-# VARIÁVEIS DE AMBIENTE DO SUPER ADMIN
-# ====================================================
-SUPER_ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL")
-SUPER_ADMIN_SENHA = os.environ.get("SUPER_ADMIN_SENHA")
+# Variáveis de ambiente do Admin
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
-# ====================================================
-# ROTAS
-# ====================================================
 
-@app.route("/")
+@app.route('/')
 def index():
-    return redirect(url_for("login"))
+    return render_template("login.html")
 
-@app.route("/login", methods=["GET", "POST"])
+
+@app.route('/login', methods=['POST'])
 def login():
-    if request.method == "POST":
-        email = request.form.get("email")
-        senha = request.form.get("senha")
+    email = request.form.get('email')
+    senha = request.form.get('password')
 
-        # Verifica Super Admin
-        if email == SUPER_ADMIN_EMAIL and senha == SUPER_ADMIN_SENHA:
-            session["super_admin"] = True
-            flash("Login realizado com sucesso!", "success")
-            return redirect(url_for("dashboard"))
-        else:
-            flash("Email ou senha inválidos!", "danger")
-            return redirect(url_for("login"))
+    # Login Admin
+    if email == ADMIN_EMAIL and senha == ADMIN_PASSWORD:
+        session['user'] = 'admin'
+        return redirect(url_for('dashboard'))
 
-    return render_template("login.html")  # Crie login.html na pasta templates
+    # Login Professor
+    if verificar_professor(email, senha):
+        session['user'] = 'professor'
+        return redirect(url_for('dashboard'))
 
-@app.route("/dashboard")
+    # Login Aluno
+    if verificar_aluno(email, senha):
+        session['user'] = 'aluno'
+        return redirect(url_for('dashboard'))
+
+    flash("Usuário ou senha inválidos", "danger")
+    return redirect(url_for('index'))
+
+
+@app.route('/dashboard')
 def dashboard():
-    if not session.get("super_admin"):
-        flash("Acesso negado!", "danger")
-        return redirect(url_for("login"))
+    user = session.get('user')
+    if not user:
+        return redirect(url_for('index'))
+    return render_template("dashboard.html", user=user)
 
-    return render_template("dashboard.html")  # Crie dashboard.html na pasta templates
 
-@app.route("/logout")
+@app.route('/logout')
 def logout():
     session.clear()
-    flash("Você saiu com sucesso!", "info")
-    return redirect(url_for("login"))
+    return redirect(url_for('index'))
 
-# ====================================================
-# EXECUÇÃO
-# ====================================================
+
 if __name__ == "__main__":
     app.run(debug=True)
