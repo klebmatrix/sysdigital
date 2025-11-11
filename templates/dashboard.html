@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Dashboard</title>
+  <meta charset="UTF-8">
+  <title>Painel - Neuro Games</title>
 </head>
 <body>
-    <h1>Bem-vindo, {{ tipo }}</h1>
-    <a href="{{ url_for('login') }}">Sair</a>
+  <h1>Bem-vindo ao Painel {{ tipo|capitalize }}</h1>
+  <a href="{{ url_for('logout') }}">Sair</a>
+  <br><br>
+  <a href="/game">Jogar Neuro Games</a>
 </body>
 </html>

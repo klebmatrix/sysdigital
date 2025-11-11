@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import os
-from models import verificar_professor, verificar_aluno
+from utils import verificar_professor, verificar_aluno
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "chave_temporaria")
 
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+SUPER_ADMIN_EMAIL = os.environ.get("SUPER_ADMIN_EMAIL")
+SUPER_ADMIN_SENHA = os.environ.get("SUPER_ADMIN_SENHA")
 
 @app.route('/')
 def index():
@@ -17,7 +17,7 @@ def login():
     email = request.form.get('email')
     senha = request.form.get('password')
 
-    if email == ADMIN_EMAIL and senha == ADMIN_PASSWORD:
+    if email == SUPER_ADMIN_EMAIL and senha == SUPER_ADMIN_SENHA:
         session['user'] = 'admin'
         return redirect(url_for('dashboard'))
 
