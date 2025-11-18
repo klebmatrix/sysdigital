@@ -1,26 +1,14 @@
 services:
   - type: web
-    name: escola-digital
+    name: sysdigital
     env: python
-    plan: free
-    region: oregon  # ou 'frankfurt' se quiser hospedar na Europa
-
     buildCommand: |
-      pip install --upgrade pip
       pip install -r requirements.txt
-
-    startCommand: gunicorn main:app
-
+      mkdir -p src/templates src/static
+      cp -r src/templates src/static . || true
+    startCommand: gunicorn src.app:app
     envVars:
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
-      - key: SUPER_ADMIN_EMAIL
-        sync: false
-      - key: SUPER_ADMIN_SENHA
-        sync: false
-      - key: SECRET_KEY
-        sync: false
-
-    autoDeploy: true
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.13.0

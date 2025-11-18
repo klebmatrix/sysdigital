@@ -10,7 +10,11 @@
     --muted:#bdbdbd; --good:#4caf50; --bad:#d32f2f;
   }
   *{box-sizing:border-box}
-  body{margin:0; font-family:Inter, Poppins, "Segoe UI", Roboto, sans-serif; background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:#eef2f7; padding:20px;}
+  body{
+    margin:0; font-family:Inter, Poppins, "Segoe UI", Roboto, sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:#eef2f7; padding:20px;
+  }
   header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   h1{margin:6px 0;color:var(--accent);text-shadow:0 0 12px rgba(0,225,255,0.08)}
   .controls{display:flex;gap:10px;align-items:center}
@@ -55,13 +59,13 @@
 
   <div class="controls">
     <div class="row">
-      <button id="facilBtn" class="level-btn">Iniciante</button>
-      <button id="medioBtn" class="level-btn">Intermediário</button>
-      <button id="difBtn" class="level-btn">Avançado</button>
+      <button id="facilBtn" class="level-btn">Fácil</button>
+      <button id="medioBtn" class="level-btn">Médio</button>
+      <button id="difBtn" class="level-btn">Difícil</button>
     </div>
     <button id="studyToggle" class="muted-btn">Modo Estudo</button>
-    <button id="clearOnlyErrors" class="muted-btn">Limpar erros</button>
-    <button id="restartGame" class="muted-btn">Reiniciar</button>
+    <button id="clearOnlyErrors" class="muted-btn">Limpar erros e continuar</button>
+    <button id="restartGame" class="muted-btn">Reiniciar jogo</button>
   </div>
 </header>
 
@@ -107,8 +111,8 @@
 
       <div id="studyPanel" class="study" style="margin-top:10px;display:none">
         <b>Álgebra</b>
-        <div>- Quando temos x + 5 = 12, qual é o valor de x? (x = 7)</div>
-        <div>- Quando temos (x + 2)(x - 3) = 0, qual é o valor de x? (x = -2 ou x = 3)</div>
+        <div>- Equação quadrática: x = (-b ± √(b²-4ac)) / (2a)</div>
+        <div>- Exemplo: para x + 5 = 12 → x = 7</div>
         <hr>
         <b>Geometria</b>
         <div>- Área círculo: A = π r²</div>
@@ -130,7 +134,7 @@
 
       <div style="margin-top:12px">
         <div class="small">Nível atual: <span id="levelLabel">—</span></div>
-        <div style="margin-top:6px" class="small">Alvo (Iniciante): <span id="easyTarget">3</span> acertos por área</div>
+        <div style="margin-top:6px" class="small">Alvo (fácil): <span id="easyTarget">3</span> acertos por área</div>
       </div>
 
       <div style="margin-top:12px" class="footer-note small muted-2">Nota: explicações aparecem apenas quando você clicar em “Mostrar explicação”.</div>
@@ -139,8 +143,315 @@
 </div>
 
 <script>
-/* TODO: Todas as funções de geração de questões serão reformuladas para a frase: "Quando temos ... qual é o valor de x?" */
+/* ====== State & Config ====== */
+const areas = ["Álgebra","Geometria","Trigonometria","Cálculo","Estatística"];
+let currentArea = 0;
+let level = 'facil';
+let score = 0;
+const stats = {};
+const recentHashes = [];
+const RECENT_MAX = 60;
+const easyTarget = 3;
+let currentQ = null;
+let studyMode = false;
+
+areas.forEach(a => stats[a] = { total:0, correct:0 });
+
+/* ====== Utils ====== */
+const randInt = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = (arr) => { for(let i=arr.length-1;i>0;i--){const j=randInt(0,i);[arr[i],arr[j]]=[arr[j],arr[i]]} return arr; };
+const hashQ = q => btoa(unescape(encodeURIComponent(JSON.stringify(q))));
+
+/* ====== DOM Refs ====== */
+const d = id => document.getElementById(id);
+const questionDiv = d('question'), optionsDiv = d('options'), areaLabel = d('areaAtual');
+const scoreLabel = d('score'), progressLabel = d('progress'), chart = d('chart'), areaStats = d('areaStats');
+const hintBox = d('hintBox'), diagramDiv = d('diagram'), studyPanel = d('studyPanel');
+const facilBtn = d('facilBtn'), medioBtn = d('medioBtn'), difBtn = d('difBtn');
+const studyToggle = d('studyToggle'), clearOnlyErrors = d('clearOnlyErrors'), explainBtn = d('explainBtn');
+const nextBtn = d('nextBtn'), repeatBtn = d('repeatBtn'), levelLabel = d('levelLabel');
+const restartGame = d('restartGame');
+
+/* ====== Generators (like before, explanations stored but not shown in question) ====== */
+function genAlgebra(){
+  const t = randInt(1,3);
+  if(t===1){
+    const x = randInt(1,12);
+    const add = randInt(1,12);
+    const m = x + add;
+    return {area:'Álgebra',type:'linear',text:`Se x + ${add} = ${m}, então x = ?`,answer:x,explain:`Subtraia ${add} dos dois lados: x = ${m} - ${add} = ${x}`};
+  } else if(t===2){
+    const a = randInt(1,5);
+    const b = randInt(1,5);
+    const roots = [-a,-b];
+    return {area:'Álgebra',type:'quadratica',text:`Se (x ${a>=0?'+':'-'} ${Math.abs(a)})·(x ${b>=0?'+':'-'} ${Math.abs(b)}) = 0, uma raiz possível é ?`,answer:roots[randInt(0,1)],explain:`As raízes possíveis são ${-a} e ${-b}`};
+  } else {
+    const x = randInt(1,12);
+    const n = 2*x;
+    return {area:'Álgebra',type:'linear2',text:`Se 2x = ${n}, então x = ?`,answer:x,explain:`Divida por 2: x = ${n}/2 = ${x}`};
+  }
+}
+
+function genGeometria(){
+  const t = randInt(1,3);
+  if(t===1){
+    const r = randInt(1,8);
+    const approxPi = level==='facil'?3:3.14;
+    const area = Number((approxPi * r * r).toFixed(2));
+    return {area:'Geometria',type:'circulo',text:`Área de um círculo (π≈${approxPi}) com raio ${r}?`,answer:area,explain:`A = π r² = ${approxPi}·${r}² = ${area}`,diagram:{type:'circle',r}};
+  } else if(t===2){
+    const b = randInt(2,12), h = randInt(1,10);
+    const area = Number(((b*h)/2).toFixed(2));
+    return {area:'Geometria',type:'triangulo',text:`Área de triângulo com base ${b} e altura ${h}?`,answer:area,explain:`A=(b·h)/2 = (${b}·${h})/2 = ${area}`,diagram:{type:'triangle',b,h}};
+  } else {
+    const a = randInt(3,12), b = randInt(3,12);
+    const hyp = Number(Math.sqrt(a*a+b*b).toFixed(2));
+    return {area:'Geometria',type:'pyth',text:`Em triângulo retângulo com catetos ${a} e ${b}, a hipotenusa ≈ ?`,answer:hyp,explain:`c = √(a²+b²) = √(${a*a}+${b*b}) ≈ ${hyp}`,diagram:{type:'rightTriangle',a,b}};
+  }
+}
+
+function genTrigonometria(){
+  const angles = [0,30,45,60,90];
+  const sinVals = {0:0,30:0.5,45:Math.SQRT2/2,60:Math.sqrt(3)/2,90:1};
+  const ang = angles[randInt(0,angles.length-1)];
+  return {area:'Trigonometria',type:'seno',text:`sen(${ang}°) ≈ ?`,answer:Number(sinVals[ang].toFixed(2)),explain:`Valor conhecido: sen(${ang}°) ≈ ${Number(sinVals[ang].toFixed(2))}`};
+}
+
+function genCalculo(){
+  const t = randInt(1,2);
+  if(t===1){
+    return {area:'Cálculo',type:'derivada',text:`d/dx (x²) = ?`,answer:'2x',explain:'Regra da potência: d/dx x^n = n·x^(n-1)'};
+  } else {
+    const n = randInt(1,4);
+    return {area:'Cálculo',type:'integral',text:`∫ x^${n} dx = ? (sem +C)`,answer:`x^${n+1}/${n+1}`,explain:`Regra: ∫ x^n dx = x^(n+1)/(n+1)`};
+  }
+}
+
+function genEstatistica(){
+  const nums = [randInt(0,9), randInt(0,9), randInt(0,9)];
+  const mean = Number(((nums[0]+nums[1]+nums[2])/3).toFixed(1));
+  return {area:'Estatística',type:'media',text:`Média de [${nums.join(', ')}] = ?`,answer:mean,explain:`Soma = ${nums[0]+nums[1]+nums[2]}, média = ${mean}`};
+}
+
+function generateQuestion(area){
+  let q;
+  if(area==='Álgebra') q = genAlgebra();
+  if(area==='Geometria') q = genGeometria();
+  if(area==='Trigonometria') q = genTrigonometria();
+  if(area==='Cálculo') q = genCalculo();
+  if(area==='Estatística') q = genEstatistica();
+
+  // montar opções (respostas)
+  let options = [];
+  const ans = q.answer;
+  if(typeof ans === 'number' || !isNaN(Number(ans))){
+    const numAns = Number(ans);
+    if(level==='facil'){
+      const base = Math.round(numAns);
+      options = [base, base+1, base-1, base+2];
+    } else if(level==='medio'){
+      options = [numAns, numAns + randInt(1,4), Math.max(Math.round(numAns)-randInt(1,3),0), Math.round(numAns+randInt(-2,5))];
+    } else {
+      options = [numAns, Math.round(numAns+randInt(2,8)), Math.round(Math.max(numAns-randInt(2,6),0)), Math.round(numAns+randInt(-5,10))];
+    }
+  } else {
+    options = [ans, 'x', '2', 'x²'];
+  }
+
+  options = shuffle(Array.from(new Set(options)).slice(0,4));
+  if(!options.some(o => String(o)===String(ans))) { options[0] = ans; shuffle(options); }
+  q.options = options;
+  return q;
+}
+
+/* ====== Render & Interaction (explanations only on demand) ====== */
+function renderQuestion(q){
+  currentQ = q;
+  areaLabel.textContent = `Área: ${q.area}`;
+  levelLabel.textContent = level;
+  questionDiv.textContent = q.text; // no explanation injected here
+  optionsDiv.innerHTML = '';
+  hintBox.style.display='none';
+  diagramDiv.style.display='none';
+  q.options.forEach(opt=>{
+    const el = document.createElement('div');
+    el.className='option';
+    el.textContent=opt;
+    el.onclick = ()=>onAnswer(el,opt,q);
+    optionsDiv.appendChild(el);
+  });
+  if(q.diagram) renderDiagram(q.diagram);
+}
+
+function renderDiagram(diag){
+  diagramDiv.innerHTML = '';
+  diagramDiv.style.display='flex';
+  if(diag.type==='circle'){
+    const r = diag.r;
+    const size = 140;
+    const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 8}" stroke="white" stroke-opacity="0.2" fill="none" />
+      <text x="${size/2}" y="${size/2}" fill="#bfeeff" font-size="12" text-anchor="middle" dominant-baseline="middle">r=${r}</text>
+    </svg>`;
+    diagramDiv.innerHTML = svg;
+  } else if(diag.type==='triangle' || diag.type==='rightTriangle'){
+    const w = 180, h = 120;
+    if(diag.type==='triangle'){
+      const b = diag.b, hh = diag.h;
+      const svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <polygon points="10,${h-10} ${w-10},${h-10} ${w/2},${h-10-hh}" fill="none" stroke="#bfeeff" stroke-opacity="0.25"/>
+        <text x="${w/2}" y="${h-8}" fill="#bfeeff" font-size="12" text-anchor="middle">base=${b}</text>
+      </svg>`;
+      diagramDiv.innerHTML = svg;
+    } else {
+      const a = diag.a, b = diag.b;
+      const svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <polyline points="20,${h-10} 20,20 ${w-20},${h-10}" fill="none" stroke="#bfeeff" stroke-opacity="0.25"/>
+        <text x="30" y="${h/2}" fill="#bfeeff" font-size="12">cateto=${a}</text>
+        <text x="${w-60}" y="${h-20}" fill="#bfeeff" font-size="12">cateto=${b}</text>
+      </svg>`;
+      diagramDiv.innerHTML = svg;
+    }
+  }
+}
+
+function onAnswer(el,choice,q){
+  const correct = String(choice) === String(q.answer);
+  stats[q.area].total++;
+  if(correct){
+    el.classList.add('correct'); score+=10; stats[q.area].correct++;
+  } else {
+    el.classList.add('wrong'); score=Math.max(score-5,0);
+  }
+  updateStats();
+  // add to recent to avoid repetition
+  const h = hashQ({text:q.text,options:q.options});
+  recentHashes.push(h); if(recentHashes.length>RECENT_MAX) recentHashes.shift();
+
+  // after delay go next (in easy stay until target)
+  setTimeout(()=>{
+    if(level==='facil' && stats[q.area].correct < easyTarget){
+      // stay same area
+    } else {
+      currentArea = (currentArea + 1) % areas.length;
+    }
+    nextUniqueQuestion();
+  },700);
+}
+
+/* ====== Repetition control ====== */
+function nextUniqueQuestion(){
+  let tries = 0;
+  const area = areas[currentArea];
+  while(tries < 120){
+    const q = generateQuestion(area);
+    const h = hashQ({text:q.text,options:q.options});
+    if(!recentHashes.includes(h)){
+      renderQuestion(q);
+      return;
+    }
+    tries++;
+  }
+  // fallback
+  renderQuestion(generateQuestion(area));
+}
+
+/* ====== Stats display (formatted like you provided) ====== */
+function formatAreaStatsString(){
+  const parts = [];
+  for(const a of areas){
+    const t = stats[a].total, c = stats[a].correct;
+    const pct = t? Math.round(c/t*100) : 0;
+    parts.push(`${a}: ${c}/${t} (${pct}%)`);
+  }
+  return parts.join(' | ');
+}
+
+function updateStats(){
+  scoreLabel.textContent = `Pontuação: ${score}`;
+  const totalAll = areas.reduce((s,a)=> s + stats[a].total, 0);
+  const correctAll = areas.reduce((s,a)=> s + stats[a].correct, 0);
+  progressLabel.textContent = `${correctAll} acertos / ${totalAll} tentativas (${ totalAll? Math.round(correctAll/totalAll*100):0 }%)`;
+  areaStats.textContent = formatAreaStatsString();
+  // chart
+  chart.innerHTML = '';
+  areas.forEach(a=>{
+    const t=stats[a].total, c=stats[a].correct;
+    const pct = t?Math.round(c/t*100):0;
+    const lab = document.createElement('div'); lab.className='small'; lab.textContent = `${a}: ${pct}%`;
+    const bar = document.createElement('div'); bar.className='bar';
+    const fill = document.createElement('div'); fill.className='bar-fill'; fill.style.width = pct + '%';
+    bar.appendChild(fill);
+    chart.appendChild(lab); chart.appendChild(bar);
+  });
+}
+
+/* ====== Controls ====== */
+function setActiveLevelBtn(){
+  [facilBtn,medioBtn,difBtn].forEach(b=>b.classList.remove('active'));
+  if(level==='facil') facilBtn.classList.add('active');
+  if(level==='medio') medioBtn.classList.add('active');
+  if(level==='dificil') difBtn.classList.add('active');
+  levelLabel.textContent = level;
+}
+
+facilBtn.onclick = ()=>{ level='facil'; setActiveLevelBtn(); nextUniqueQuestion(); };
+medioBtn.onclick = ()=>{ level='medio'; setActiveLevelBtn(); nextUniqueQuestion(); };
+difBtn.onclick = ()=>{ level='dificil'; setActiveLevelBtn(); nextUniqueQuestion(); };
+
+studyToggle.onclick = ()=>{
+  studyMode = !studyMode;
+  studyPanel.style.display = studyMode? 'block':'none';
+  studyToggle.textContent = studyMode? 'Modo Estudo: On' : 'Modo Estudo';
+};
+
+// NEW: Limpar apenas erros e continuar
+clearOnlyErrors.onclick = ()=>{
+  // For each area: keep correct count, set total = correct (so errors become zero)
+  for(const a of areas){
+    stats[a].total = stats[a].correct;
+  }
+  // Do not change score or correct counts
+  updateStats();
+  showTempMessage('Erros limpos — mantendo seus acertos',1400);
+};
+
+explainBtn.onclick = ()=>{
+  if(currentQ && currentQ.explain){
+    hintBox.style.display='block';
+    hintBox.textContent = currentQ.explain;
+  } else {
+    hintBox.style.display='block';
+    hintBox.textContent = 'Explicação não disponível para esta pergunta.';
+  }
+};
+
+nextBtn.onclick = ()=>{ currentArea = (currentArea + 1) % areas.length; nextUniqueQuestion(); };
+repeatBtn.onclick = ()=> nextUniqueQuestion();
+
+restartGame.onclick = ()=>{
+  if(confirm('Reiniciar jogo e limpar todo o progresso?')){
+    for(const a of areas){ stats[a].total=0; stats[a].correct=0; }
+    score = 0; recentHashes.length = 0; currentArea = 0; level='facil';
+    setActiveLevelBtn(); updateStats(); nextUniqueQuestion();
+    showTempMessage('Jogo reiniciado',1400);
+  }
+};
+
+/* ====== Small helpers ====== */
+function showTempMessage(text,ms=1500){
+  const el = document.createElement('div');
+  el.style.position='fixed'; el.style.left='50%'; el.style.top='14px'; el.style.transform='translateX(-50%)';
+  el.style.background='rgba(0,0,0,0.6)'; el.style.padding='10px 16px'; el.style.borderRadius='10px'; el.style.zIndex=9999;
+  el.style.border='1px solid rgba(255,255,255,0.03)'; el.textContent = text;
+  document.body.appendChild(el); setTimeout(()=> el.remove(), ms);
+}
+
+/* ====== Start ====== */
+setActiveLevelBtn();
+updateStats();
+nextUniqueQuestion();
+
 </script>
-Doar Pix :  <h3>914e4b6a-91b4-4e50-bb7c-c610dc90407a</h3>
 </body>
 </html>
