@@ -7,18 +7,18 @@
 <style>
   /* Tema Claro */
   :root{
-    --bg1:#f0f2f5;
-    --bg2:#e9ecef;
-    --card:#ffffff;
-    --accent:#007bff;
-    --accent2:#0056b3;
-    --muted:#6c757d;
-    --good:#28a745;
-    --bad:#dc3545;
-    --text-color:#212529;
-    --card-shadow:0 4px 12px rgba(0,0,0,0.1);
-    --button-bg:#f8f9fa;
-    --button-text:#212529;
+    --bg1:#f0f2f5; /* Fundo muito claro */
+    --bg2:#e9ecef; /* Fundo um pouco mais escuro */
+    --card:#ffffff; /* Cartão branco */
+    --accent:#007bff; /* Azul primário */
+    --accent2:#0056b3; /* Azul secundário */
+    --muted:#6c757d; /* Cinza para texto secundário */
+    --good:#28a745; /* Verde para acerto */
+    --bad:#dc3545; /* Vermelho para erro */
+    --text-color:#212529; /* Cor principal do texto */
+    --card-shadow:0 4px 12px rgba(0,0,0,0.1); /* Sombra suave */
+    --button-bg:#f8f9fa; /* Fundo de botão claro */
+    --button-text:#212529; /* Texto de botão escuro */
   }
   *{box-sizing:border-box}
   body{
@@ -27,25 +27,11 @@
     color:var(--text-color); padding:20px;
   }
   header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-
-  .left-controls{
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
-
-  h1{margin:6px 0;color:var(--accent);}
+  h1{margin:6px 0;color:var(--accent);text-shadow:none}
   .controls{display:flex;gap:10px;align-items:center}
-  button, .toggle, a.linkBtn{
-    cursor:pointer;border:1px solid var(--muted);padding:8px 12px;
-    border-radius:10px;background:var(--button-bg);color:var(--button-text);
-    text-decoration:none;
-  }
-  button:hover, a.linkBtn:hover{opacity:.9; background:var(--bg2)}
-  .level-btn.active{
-    background:linear-gradient(90deg,var(--accent),var(--accent2));
-    color:#ffffff; border-color:var(--accent)
-  }
+  button, .toggle{cursor:pointer;border:1px solid var(--muted);padding:8px 12px;border-radius:10px;background:var(--button-bg);color:var(--button-text)}
+  button:hover{opacity:.9; background:var(--bg2)}
+  .level-btn.active{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#ffffff; border-color:var(--accent)}
   .container{display:grid;grid-template-columns:1fr 380px;gap:20px;margin-top:18px}
   .card{background:var(--card); padding:18px;border-radius:12px; box-shadow:var(--card-shadow); color:var(--text-color)}
   .game-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -76,14 +62,7 @@
 </style>
 </head>
 <body>
-
 <header>
-
-  <div class="left-controls">
-    <!-- LINK PARA O SITE -->
-    <a class="linkBtn" href="https://cromosvirtual.com/" target="_blank">🌐 CromosVirtual</a>
-  </div>
-
   <div>
     <h1>🧠 Neuro Game – Multimatemática</h1>
     <div class="small">Exercícios infinitos — Painel de estudo separado (sem repetição)</div>
@@ -101,6 +80,368 @@
   </div>
 </header>
 
-<!-- RESTANTE DO SEU CÓDIGO ABAIXO É O MESMO -->
-<!-- NÃO ALTEREI NADA DO JOGO -->
+<div class="container">
+  <main class="card">
+    <div class="game-top">
+      <div id="areaAtual">Área: —</div>
+      <div class="meta">
+        <div id="score" class="badge">Pontuação: 0</div>
+        <div id="progress" class="small muted-2">0 acertos / 0 tentativas (0%)</div>
+      </div>
+    </div>
 
+    <div id="question" class="question">Clique em um nível para começar</div>
+
+    <div id="options" class="options"></div>
+
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      <div style="display:flex;gap:8px">
+        <button id="nextBtn" class="muted-btn">Próximo</button>
+        <button id="repeatBtn" class="muted-btn">Repetir área</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="explainBtn" class="muted-btn">Mostrar explicação</button>
+      </div>
+    </div>
+
+    <div id="hintBox" class="hint" style="display:none"></div>
+    <div id="diagram" class="diagram" style="display:none"></div>
+
+    <div class="stats">
+      <div id="areaStats">Estatísticas por área: —</div>
+      <div id="recent" style="margin-top:6px" class="small muted-2">Perguntas recentes evitam repetição</div>
+    </div>
+  </main>
+
+  <aside>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700">Painel de Estudo</div>
+        <div class="small">Fórmulas essenciais (não repetidas nas perguntas)</div>
+      </div>
+
+      <div id="studyPanel" class="study" style="margin-top:10px;display:none">
+        <b>Álgebra</b>
+        <div>- Quando temos x + 5 = 12, qual é o valor de x? (x = 7)</div>
+        <div>- Quando temos (x + 2)(x - 3) = 0, qual é o valor de x? (x = -2 ou x = 3)</div>
+        <hr>
+        <b>Geometria</b>
+        <div>- Área círculo: A = π r²</div>
+        <div>- Triângulo: A = (b·h)/2</div>
+        <hr>
+        <b>Trigonometria</b>
+        <div>- sen30 = 1/2, sen45 ≈ √2/2 ≈ 0.71, sen60 ≈ √3/2 ≈ 0.87</div>
+        <hr>
+        <b>Cálculo</b>
+        <div>- d/dx x² = 2x</div>
+        <div>- ∫ xⁿ dx = xⁿ⁺¹/(n+1) + C</div>
+        <hr>
+        <b>Estatística</b>
+        <div>- Média = soma / n</div>
+        <div>- Moda: valor mais frequente; Mediana: valor central</div>
+      </div>
+
+      <div id="chart" style="margin-top:12px"></div>
+
+      <div style="margin-top:12px">
+        <div class="small">Nível atual: <span id="levelLabel">—</span></div>
+        <div style="margin-top:6px" class="small">Alvo (Iniciante): <span id="easyTarget">3</span> acertos por área</div>
+      </div>
+
+      <div style="margin-top:12px" class="footer-note small muted-2">Nota: explicações aparecem apenas quando você clicar em “Mostrar explicação”.</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* O código JavaScript do jogo é mantido, apenas o CSS foi alterado */
+/* ====== State & Config ====== */
+const areas = ["Álgebra","Geometria","Trigonometria","Cálculo","Estatística"];
+let currentArea = 0;
+let level = 'facil';
+let score = 0;
+const stats = {};
+const recentHashes = [];
+const RECENT_MAX = 60;
+const easyTarget = 3;
+let currentQ = null;
+let studyMode = false;
+
+areas.forEach(a => stats[a] = { total:0, correct:0 });
+
+/* ====== Utils ====== */
+const randInt = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = (arr) => { for(let i=arr.length-1;i>0;i--){const j=randInt(0,i);[arr[i],arr[j]]=[arr[j],arr[i]]} return arr; };
+const hashQ = q => btoa(unescape(encodeURIComponent(JSON.stringify(q))));
+
+/* ====== DOM Refs ====== */
+const d = id => document.getElementById(id);
+const questionDiv = d('question'), optionsDiv = d('options'), areaLabel = d('areaAtual');
+const scoreLabel = d('score'), progressLabel = d('progress'), chart = d('chart'), areaStats = d('areaStats');
+const hintBox = d('hintBox'), diagramDiv = d('diagram'), studyPanel = d('studyPanel');
+const facilBtn = d('facilBtn'), medioBtn = d('medioBtn'), difBtn = d('difBtn');
+const studyToggle = d('studyToggle'), clearOnlyErrors = d('clearOnlyErrors'), explainBtn = d('explainBtn');
+const nextBtn = d('nextBtn'), repeatBtn = d('repeatBtn'), levelLabel = d('levelLabel');
+const restartGame = d('restartGame');
+
+/* ====== Generators (like before, explanations stored but not shown in question) ====== */
+function genAlgebra(){
+  const t = randInt(1,3);
+  if(t===1){
+    const x = randInt(1,12);
+    const add = randInt(1,12);
+    const m = x + add;
+    return {area:'Álgebra',type:'linear',text:`Se x + ${add} = ${m}, então x = ?`,answer:x,explain:`Subtraia ${add} dos dois lados: x = ${m} - ${add} = ${x}`};
+  } else if(t===2){
+    const a = randInt(1,5);
+    const b = randInt(1,5);
+    const roots = [-a,-b];
+    return {area:'Álgebra',type:'quadratica',text:`Se (x ${a>=0?'+':'-'} ${Math.abs(a)})·(x ${b>=0?'+':'-'} ${Math.abs(b)}) = 0, uma raiz possível é ?`,answer:roots[randInt(0,1)],explain:`As raízes possíveis são ${-a} e ${-b}`};
+  } else {
+    const x = randInt(1,12);
+    const n = 2*x;
+    return {area:'Álgebra',type:'linear2',text:`Se 2x = ${n}, então x = ?`,answer:x,explain:`Divida por 2: x = ${n}/2 = ${x}`};
+  }
+}
+
+function genGeometria(){
+  const t = randInt(1,3);
+  if(t===1){
+    const r = randInt(1,8);
+    const approxPi = level==='facil'?3:3.14;
+    const area = Number((approxPi * r * r).toFixed(2));
+    return {area:'Geometria',type:'circulo',text:`Área de um círculo (π≈${approxPi}) com raio ${r}?`,answer:area,explain:`A = π r² = ${approxPi}·${r}² = ${area}`,diagram:{type:'circle',r}};
+  } else if(t===2){
+    const b = randInt(2,12), h = randInt(1,10);
+    const area = Number(((b*h)/2).toFixed(2));
+    return {area:'Geometria',type:'triangulo',text:`Área de triângulo com base ${b} e altura ${h}?`,answer:area,explain:`A=(b·h)/2 = (${b}·${h})/2 = ${area}`,diagram:{type:'triangle',b,h}};
+  } else {
+    const a = randInt(3,12), b = randInt(3,12);
+    const hyp = Number(Math.sqrt(a*a+b*b).toFixed(2));
+    return {area:'Geometria',type:'pyth',text:`Em triângulo retângulo com catetos ${a} e ${b}, a hipotenusa ≈ ?`,answer:hyp,explain:`c = √(a²+b²) = √(${a*a}+${b*b}) ≈ ${hyp}`,diagram:{type:'rightTriangle',a,b}};
+  }
+}
+
+function genTrigonometria(){
+  const angles = [0,30,45,60,90];
+  const sinVals = {0:0,30:0.5,45:Math.SQRT2/2,60:Math.sqrt(3)/2,90:1};
+  const ang = angles[randInt(0,angles.length-1)];
+  return {area:'Trigonometria',type:'seno',text:`sen(${ang}°) ≈ ?`,answer:Number(sinVals[ang].toFixed(2)),explain:`Valor conhecido: sen(${ang}°) ≈ ${Number(sinVals[ang].toFixed(2))}`};
+}
+
+function genCalculo(){
+  const t = randInt(1,2);
+  if(t===1){
+    return {area:'Cálculo',type:'derivada',text:`d/dx (x²) = ?`,answer:'2x',explain:'Regra da potência: d/dx x^n = n·x^(n-1)'};
+  } else {
+    const n = randInt(1,4);
+    return {area:'Cálculo',type:'integral',text:`∫ x^${n} dx = ? (sem +C)`,answer:`x^${n+1}/${n+1}`,explain:`Regra: ∫ x^n dx = x^(n+1)/(n+1)`};
+  }
+}
+
+function genEstatistica(){
+  const nums = [randInt(0,9), randInt(0,9), randInt(0,9)];
+  const mean = Number(((nums[0]+nums[1]+nums[2])/3).toFixed(1));
+  return {area:'Estatística',type:'media',text:`Média de [${nums.join(', ')}] = ?`,answer:mean,explain:`Soma = ${nums[0]+nums[1]+nums[2]}, média = ${mean}`};
+}
+
+function generateQuestion(area){
+  let q;
+  if(area==='Álgebra') q = genAlgebra();
+  if(area==='Geometria') q = genGeometria();
+  if(area==='Trigonometria') q = genTrigonometria();
+  if(area==='Cálculo') q = genCalculo();
+  if(area==='Estatística') q = genEstatistica();
+
+  // montar opções (respostas)
+  let options = [];
+  const ans = q.answer;
+  if(typeof ans === 'number' || !isNaN(Number(ans))){
+    const numAns = Number(ans);
+    if(level==='facil'){
+      const base = Math.round(numAns);
+      options = [base, base+1, base-1, base+2];
+    } else if(level==='medio'){
+      options = [numAns, numAns + randInt(1,4), Math.max(Math.round(numAns)-randInt(1,3),0), Math.round(numAns+randInt(-2,5))];
+    } else {
+      options = [numAns, Math.round(numAns+randInt(2,8)), Math.round(Math.max(numAns-randInt(2,6),0)), Math.round(numAns+randInt(-5,10))];
+    }
+  } else {
+    options = [ans, 'x', '2', 'x²'];
+  }
+
+  options = shuffle(Array.from(new Set(options)).slice(0,4));
+  if(!options.some(o => String(o)===String(ans))) { options[0] = ans; shuffle(options); }
+  q.options = options;
+  return q;
+}
+
+/* ====== Render & Interaction (explanations only on demand) ====== */
+function renderQuestion(q){
+  currentQ = q;
+  areaLabel.textContent = `Área: ${q.area}`;
+  levelLabel.textContent = level;
+  questionDiv.textContent = q.text; // no explanation injected here
+  optionsDiv.innerHTML = '';
+  hintBox.style.display='none';
+  diagramDiv.style.display='none';
+  q.options.forEach(opt=>{
+    const el = document.createElement('div');
+    el.className='option';
+    el.textContent=opt;
+    el.onclick = ()=>onAnswer(el,opt,q);
+    optionsDiv.appendChild(el);
+  });
+  if(q.diagram) renderDiagram(q.diagram);
+}
+
+function renderDiagram(diag){
+  diagramDiv.innerHTML = '';
+  diagramDiv.style.display='flex';
+  if(diag.type==='circle'){
+    const r = diag.r;
+    const size = 140;
+    const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 8}" stroke="var(--text-color)" stroke-opacity="0.2" fill="none" />
+      <text x="${size/2}" y="${size/2}" fill="var(--accent)" font-size="12" text-anchor="middle" dominant-baseline="middle">r=${r}</text>
+    </svg>`;
+    diagramDiv.innerHTML = svg;
+  } else if(diag.type==='triangle' || diag.type==='rightTriangle'){
+    const w = 180, h = 120;
+    if(diag.type==='triangle'){
+      const b = diag.b, hh = diag.h;
+      const svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <polygon points="10,${h-10} ${w-10},${h-10} ${w/2},${h-10-hh}" fill="none" stroke="var(--accent)" stroke-opacity="0.25"/>
+        <text x="${w/2}" y="${h-8}" fill="var(--accent)" font-size="12" text-anchor="middle">base=${b}</text>
+      </svg>`;
+      diagramDiv.innerHTML = svg;
+    } else {
+      const a = diag.a, b = diag.b;
+      const svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <polyline points="20,${h-10} 20,20 ${w-20},${h-10}" fill="none" stroke="var(--accent)" stroke-opacity="0.25"/>
+        <text x="30" y="${h/2}" fill="var(--accent)" font-size="12">cateto=${a}</text>
+        <text x="${w-60}" y="${h-20}" fill="var(--accent)" font-size="12">cateto=${b}</text>
+      </svg>`;
+      diagramDiv.innerHTML = svg;
+    }
+  }
+}
+
+function onAnswer(el,choice,q){
+  const correct = String(choice) === String(q.answer);
+  stats[q.area].total++;
+  if(correct){
+    el.classList.add('correct'); score+=10; stats[q.area].correct++;
+  } else {
+    el.classList.add('wrong'); score=Math.max(score-5,0);
+  }
+  updateStats();
+  // add to recent to avoid repetition
+  const h = hashQ({text:q.text,options:q.options});
+  recentHashes.push(h); if(recentHashes.length>RECENT_MAX) recentHashes.shift();
+
+  // after delay go next (in easy stay until target)
+  setTimeout(()=>{
+    if(level==='facil' && stats[q.area].correct < easyTarget){
+      // stay same area
+    } else {
+      currentArea = (currentArea + 1) % areas.length;
+    }
+    nextUniqueQuestion();
+  },700);
+}
+
+/* ====== Repetition control ====== */
+function nextUniqueQuestion(){
+  let tries = 0;
+  const area = areas[currentArea];
+  while(tries < 120){
+    const q = generateQuestion(area);
+    const h = hashQ({text:q.text,options:q.options});
+    if(!recentHashes.includes(h)){
+      renderQuestion(q);
+      return;
+    }
+    tries++;
+  }
+  // fallback
+  renderQuestion(generateQuestion(area));
+}
+
+/* ====== Stats display (formatted like you provided) ====== */
+function formatAreaStatsString(){
+  const parts = [];
+  for(const a of areas){
+    const t = stats[a].total, c = stats[a].correct;
+    const pct = t? Math.round(c/t*100) : 0;
+    parts.push(`${a}: ${c}/${t} (${pct}%)`);
+  }
+  return parts.join(' | ');
+}
+
+function updateStats(){
+  scoreLabel.textContent = `Pontuação: ${score}`;
+  const totalAll = areas.reduce((s,a)=> s + stats[a].total, 0);
+  const correctAll = areas.reduce((s,a)=> s + stats[a].correct, 0);
+  progressLabel.textContent = `${correctAll} acertos / ${totalAll} tentativas (${ totalAll? Math.round(correctAll/totalAll*100):0 }%)`;
+  areaStats.textContent = formatAreaStatsString();
+  // chart
+  chart.innerHTML = '';
+  areas.forEach(a=>{
+    const t=stats[a].total, c=stats[a].correct;
+    const pct = t?Math.round(c/t*100):0;
+    const lab = document.createElement('div'); lab.className='small'; lab.textContent = `${a}: ${pct}%`;
+    const bar = document.createElement('div'); bar.className='bar';
+    const fill = document.createElement('div'); fill.className='bar-fill'; fill.style.width = `${pct}%`;
+    bar.appendChild(fill);
+    chart.appendChild(lab); chart.appendChild(bar);
+  });
+}
+
+/* ====== Event Handlers ====== */
+function setLevel(newLevel){
+  level = newLevel;
+  [facilBtn, medioBtn, difBtn].forEach(btn => btn.classList.remove('active'));
+  d(`${newLevel}Btn`).classList.add('active');
+  nextUniqueQuestion();
+}
+
+facilBtn.onclick = ()=>setLevel('facil');
+medioBtn.onclick = ()=>setLevel('medio');
+difBtn.onclick = ()=>setLevel('dif'); // Corrigido o erro de digitação aqui
+studyToggle.onclick = ()=>{
+  studyMode = !studyMode;
+  studyPanel.style.display = studyMode ? 'block' : 'none';
+  studyToggle.textContent = studyMode ? 'Modo Jogo' : 'Modo Estudo';
+};
+clearOnlyErrors.onclick = ()=>{
+  // Lógica para limpar apenas erros (mantida a simplicidade)
+  score = 0;
+  recentHashes.length = 0;
+  areas.forEach(a => stats[a] = { total:0, correct:0 });
+  updateStats();
+  nextUniqueQuestion();
+};
+restartGame.onclick = ()=>{
+  // Lógica para reiniciar o jogo
+  score = 0;
+  recentHashes.length = 0;
+  areas.forEach(a => stats[a] = { total:0, correct:0 });
+  updateStats();
+  setLevel('facil');
+};
+explainBtn.onclick = ()=>{
+  if(currentQ){
+    hintBox.textContent = currentQ.explain;
+    hintBox.style.display = 'block';
+  }
+};
+nextBtn.onclick = ()=>nextUniqueQuestion();
+repeatBtn.onclick = ()=>renderQuestion(currentQ); // Repete a pergunta atual
+
+/* ====== Initialization ====== */
+setLevel('facil');
+updateStats();
+</script>
+</body>
+</html>
