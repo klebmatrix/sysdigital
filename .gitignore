@@ -1,5 +1,7 @@
 # === Ambiente virtual Python ===
-venv/
+v
+.vs/
+env/
 .env
 *.pyc
 __pycache__/
