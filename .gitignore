@@ -1,4 +1,4 @@
-# === Ambiente virtual Python ===
+# === Ambie			nte virtual Python ===
 v
 .vs/
 env/
@@ -55,3 +55,23 @@ backend/templates/Novo Documento de Texto.txt
 # === Arquivos específicos de sistema ===
 desktop.ini
 *.lnk
+
+# Visual Studio
+.vs/
+*.slnx
+*.vsidx
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+venv/
+
+# Banco local
+*.db
+
+# Logs
+*.log
