@@ -1,3 +1,5 @@
+flask
+gunicorn
 langgraph
 crewai
 python-dotenv
