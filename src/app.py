@@ -1,10 +1,7 @@
 from flask import Flask, render_template
-from dotenv import load_dotenv
 import os
 
-load_dotenv()
-
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")  # garante que Flask busca em src/templates
 
 @app.route("/")
 def home():
