@@ -3,4 +3,4 @@ gunicorn==21.2.0
 langgraph
 crewai
 python-dotenv
-start
+pip install --upgrade pip
