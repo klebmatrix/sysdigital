@@ -1,5 +1,1 @@
-#!/bin/bash
-source venv/bin/activate
-export FLASK_APP=app.py
-export FLASK_ENV=development
-flask run
+gunicorn app:app --bind 0.0.0.0:$PORT
