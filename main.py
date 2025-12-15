@@ -1,8 +1,16 @@
-from graph.graph import build_graph
+from flask import Flask, render_template
+import os
+
+app = Flask(__name__, template_folder='templates')
+app.secret_key = os.environ.get("SECRET_KEY", "chave_temporaria")
+
+@app.route('/')
+def index():
+    return render_template("index.html")
+
+@app.route('/tutor')
+def tutor():
+    return render_template("tutor.html")
 
 if __name__ == "__main__":
-    graph = build_graph()
-    result = graph.invoke({
-        "user_query": "Explique a Revolução Francesa para um aluno do ensino médio"
-    })
-    print(result["final_report"])
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
