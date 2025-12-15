@@ -1,77 +1,9 @@
-# === Ambie			nte virtual Python ===
-v
-.vs/
-env/
-.env
-*.pyc
+
 __pycache__/
-*.pyo
-*.pyd
-*.db
-*.sqlite3
-
-# === Configurações e segredos ===
-.env*
-instance/
-*.log
-*.bak
-*.swp
-*~ 
-
-# === Dependências e builds ===
-*.egg-info/
-.eggs/
-build/
-dist/
-
-# === VSCode / IDEs ===
-.vscode/
-.idea/
-*.code-workspace
-
-# === Cache e metadados ===
-.DS_Store
-Thumbs.db
-.cache/
-pytest_cache/
-coverage/
-
-# === Node (caso use front-end JS) ===
-node_modules/
-package-lock.json
-
-# === Render / Heroku / Deploy temporário ===
-*.tar.gz
-*.zip
-*.tmp
-*.bak
-*.orig
-
-# === Banco de dados local (apenas produção tem o real) ===
-backend/instance/escola_digital.db
-backend/routes/Novo Documento de Texto.txt
-backend/templates/Novo Documento de Texto.txt
-
-# === Arquivos específicos de sistema ===
-desktop.ini
-*.lnk
-
-# Visual Studio
-.vs/
-*.slnx
-*.vsidx
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
 .env
 .venv/
-venv/
-
-# Banco local
-*.db
-
-# Logs
-*.log
+.env.local
+.DS_Store
+.idea/
+.vscode/
+outputs/

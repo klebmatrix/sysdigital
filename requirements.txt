@@ -1,6 +1,3 @@
-Flask
-gunicorn
+langgraph
+crewai
 python-dotenv
-nltk
-reportlab
-
