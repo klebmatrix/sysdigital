@@ -1,7 +1,8 @@
 from flask import Flask, render_template
 import os
 
-app = Flask(__name__, template_folder="templates")  # garante que Flask busca em src/templates
+# Aqui diz explicitamente que os templates estão em src/templates
+app = Flask(__name__, template_folder="templates")
 
 @app.route("/")
 def home():
