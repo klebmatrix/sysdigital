@@ -1,16 +1,24 @@
 from flask import Flask, render_template
 import os
 
-app = Flask(__name__, template_folder='templates')
-app.secret_key = os.environ.get("SECRET_KEY", "chave_temporaria")
+app = Flask(__name__, template_folder="templates")
 
-@app.route('/')
+# Rota principal – Jogo
+@app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route('/tutor')
+# Rota do Tutor IA
+@app.route("/tutor")
 def tutor():
     return render_template("tutor.html")
 
+# Health check opcional (ajuda no Render)
+@app.route("/health")
+def health():
+    return "OK", 200
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
+    # Apenas para ambiente local
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=True)
