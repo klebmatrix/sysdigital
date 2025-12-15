@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 import os
 
-app = Flask(__name__, template_folder="templates")  # src/templates/
+app = Flask(__name__, template_folder="templates")
 
 @app.route("/")   # rota raiz
 def home():
