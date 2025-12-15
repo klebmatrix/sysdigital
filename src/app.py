@@ -1,10 +1,9 @@
 from flask import Flask, render_template
 import os
 
-# Garantir que o Flask olha para a pasta templates correta
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__, template_folder="templates")  # src/templates/
 
-@app.route("/")
+@app.route("/")   # rota raiz
 def home():
     return render_template("index.html")
 
