@@ -63,3 +63,4 @@ python main.py
 *   **Lógica de Troca de Senha:** A rota `/api/trocar_senha_aluno` é apenas simulada e deve ser integrada com o Supabase Auth para ser funcional.
 
 "# sysdigital" 
+"# sysdigital" 
