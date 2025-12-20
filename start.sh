@@ -3,5 +3,5 @@
 pip install aiohttp
 
 # Inicia a aplicação
-gunicorn main:app
+gunicorn app:app
 
