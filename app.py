@@ -1,38 +1,13 @@
 import os
-from flask import Flask, render_template
+from flask import Flask
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-app = Flask(
-    __name__,
-    template_folder=os.path.join(BASE_DIR, "templates")
-)
-
-LEVELS = {
-    "facil": {
-        "title": "Nível Fácil",
-        "description": "Perguntas básicas"
-    },
-    "medio": {
-        "title": "Nível Médio",
-        "description": "Perguntas intermediárias"
-    },
-    "dificil": {
-        "title": "Nível Difícil",
-        "description": "Perguntas avançadas"
-    }
-}
+app = Flask(__name__)
 
 @app.route("/")
 def index():
-    return render_template("index.html", levels=LEVELS.keys())
-
-@app.route("/play/<level>")
-def play(level):
-    payload = LEVELS.get(level)
-    if not payload:
-        return "Level not found", 404
-    return render_template("index.html", payload=payload)
-
-if __name__ == "__main__":
-    app.run()
+    return {
+        "cwd": os.getcwd(),
+        "files": os.listdir("."),
+        "templates_exists": os.path.exists("templates"),
+        "templates_files": os.listdir("templates") if os.path.exists("templates") else "NAO EXISTE"
+    }
