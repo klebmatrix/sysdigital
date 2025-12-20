@@ -62,5 +62,3 @@ python main.py
 *   **Lógica de Senha:** A `senha_inicial` do professor é armazenada em texto puro no Supabase. **Isso é inseguro** e deve ser substituído por um hash (ex: `bcrypt`) em um ambiente de produção.
 *   **Lógica de Troca de Senha:** A rota `/api/trocar_senha_aluno` é apenas simulada e deve ser integrada com o Supabase Auth para ser funcional.
 
-"# sysdigital" 
-"# sysdigital" 
