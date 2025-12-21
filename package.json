@@ -1,6 +1,5 @@
 {
-  "cwd": "/opt/render/project/src",
-  "files": ["app.py", "templates", "requirements.txt", "Procfile"],
-  "templates_exists": true,
-  "templates_files": ["index.html"]
+  "devDependencies": {
+    "tailwindcss": "^4.1.16"
+  }
 }

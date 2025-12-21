@@ -21,13 +21,3 @@ def get_supabase_client():
     return supabase
 
 from supabase import create_client, Client
-
-
-# Constantes de Tabela
-PROFESSORES_TABLE = "professores"
-ALUNOS_TABLE = "alunos"
-ATIVIDADES_TABLE = "atividades"
-RESPOSTAS_TABLE = "respostas"
-GAME_LEVELS_TABLE = "game_levels"
-ADMINS_TABLE = "admins"
-
