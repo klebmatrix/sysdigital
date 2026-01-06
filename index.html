@@ -470,6 +470,152 @@ repeatBtn.onclick = ()=>renderQuestion(currentQ); // Repete a pergunta atual
 setLevel('facil');
 updateStats();
 </script>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atividade Interativa de Frações</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --bg: #f8f9fa;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 20px; text-align: center; }
+        h1 { color: #333; }
+        
+        .dashboard { 
+            background: white; padding: 15px; border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px;
+            display: flex; justify-content: center; gap: 20px; align-items: center;
+            position: sticky; top: 10px; z-index: 100;
+        }
+
+        .grid-atividades { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 20px; max-width: 1000px; margin: 0 auto; 
+        }
+
+        .fraction-card { 
+            background: white; border-radius: 12px; padding: 15px;
+            transition: transform 0.2s, box-shadow 0.2s; border: 2px solid transparent;
+        }
+        .fraction-card.correct { border-color: var(--success); background: #f0fff4; }
+        .fraction-card:hover { transform: translateY(-5px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+
+        .fraction-text { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #444; }
+        .slice { fill: #fff; stroke: #333; stroke-width: 1.5; cursor: pointer; }
+        .slice.selected { fill: var(--primary); }
+
+        button { 
+            padding: 10px 20px; border: none; border-radius: 8px; 
+            cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        .btn-clear { background: #e74c3c; color: white; }
+        .btn-report { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+    <h1>Matemática Divertida: Pintando Frações</h1>
+
+    <div class="dashboard">
+        <div>Progresso: <strong id="progress-text">0/0</strong></div>
+        <button class="btn-report" onclick="gerarRelatorio()">Gerar Relatório Final</button>
+        <button class="btn-clear" onclick="limparProgresso()">Reiniciar Atividade</button>
+    </div>
+
+    <div id="atividades-container" class="grid-atividades"></div>
+
+<script>
+    // Dados extraídos da sua imagem (Exemplos)
+    const questoes = [
+        { id: 1, n: 5, d: 9 }, { id: 2, n: 2, d: 6 }, { id: 3, n: 7, d: 7 },
+        { id: 4, n: 1, d: 11 }, { id: 5, n: 4, d: 9 }, { id: 6, n: 9, d: 12 },
+        { id: 7, n: 1, d: 5 }, { id: 8, n: 1, d: 2 }, { id: 9, n: 3, d: 3 }
+    ];
+
+    function init() {
+        const container = document.getElementById('atividades-container');
+        container.innerHTML = '';
+        questoes.forEach(q => criarCard(container, q));
+        atualizarProgresso();
+    }
+
+    function criarCard(target, q) {
+        const salvo = JSON.parse(localStorage.getItem(`fracao_${q.id}`)) || [];
+        const card = document.createElement('div');
+        card.className = `fraction-card ${salvo.length === q.n ? 'correct' : ''}`;
+        card.innerHTML = `<div class="fraction-text">${q.n}/${q.d}</div>`;
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 100 100");
+        svg.setAttribute("width", "120");
+
+        for (let i = 0; i < q.d; i++) {
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", descreverFatia(50, 50, 45, (i * 360) / q.d, ((i + 1) * 360) / q.d));
+            path.setAttribute("class", `slice ${salvo.includes(i) ? 'selected' : ''}`);
+            
+            path.onclick = () => {
+                path.classList.toggle('selected');
+                salvar(card, q);
+            };
+            svg.appendChild(path);
+        }
+
+        card.appendChild(svg);
+        target.appendChild(card);
+    }
+
+    function descreverFatia(x, y, raio, anguloInicio, anguloFim) {
+        const start = polarToCartesian(x, y, raio, anguloFim);
+        const end = polarToCartesian(x, y, raio, anguloInicio);
+        const arcSweep = anguloFim - anguloInicio <= 180 ? "0" : "1";
+        return `M ${x} ${y} L ${start.x} ${start.y} A ${raio} ${raio} 0 ${arcSweep} 0 ${end.x} ${end.y} Z`;
+    }
+
+    function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+        const radians = (angleInDegrees - 90) * Math.PI / 180.0;
+        return { x: centerX + (radius * Math.cos(radians)), y: centerY + (radius * Math.sin(radians)) };
+    }
+
+    function salvar(card, q) {
+        const selecionados = [];
+        card.querySelectorAll('.slice').forEach((s, i) => {
+            if (s.classList.contains('selected')) selecionados.push(i);
+        });
+        localStorage.setItem(`fracao_${q.id}`, JSON.stringify(selecionados));
+        
+        if (selecionados.length === q.n) card.classList.add('correct');
+        else card.classList.remove('correct');
+        
+        atualizarProgresso();
+    }
+
+    function atualizarProgresso() {
+        const total = questoes.length;
+        const acertos = document.querySelectorAll('.fraction-card.correct').length;
+        document.getElementById('progress-text').innerText = `${acertos} / ${total}`;
+    }
+
+    function gerarRelatorio() {
+        const acertos = document.querySelectorAll('.fraction-card.correct').length;
+        const total = questoes.length;
+        const nota = ((acertos / total) * 10).toFixed(1);
+        alert(`--- RELATÓRIO DO ALUNO ---\n\nAcertos: ${acertos}\nTotal: ${total}\nDesempenho: ${nota}/10\n\nMostre esta tela ao professor!`);
+    }
+
+    function limparProgresso() {
+        if(confirm("Deseja apagar tudo e recomeçar?")) {
+            localStorage.clear();
+            init();
+        }
+    }
+
+    init();
+</script>
 
 </body>
 <br>Doar  Pix :  914e4b6a-91b4-4e50-bb7c-c610dc90407a</br>				
