@@ -676,7 +676,128 @@ updateStats();
     }
 
     init();
+</script>_______________________________________
+
+<head>
+    <meta charset="UTF-8">
+    <title>Desafio de Ângulos Interativo</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --primary: #f1c40f; --success: #2ecc71; --dark: #2c3e50; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #f0f2f5; padding: 20px; }
+        
+        .card {
+            background: white; border-radius: 20px; padding: 30px;
+            display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* Estilo do V de acerto */
+        .check-v {
+            fill: var(--success);
+            font-size: 50px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .correct .check-v { opacity: 1; animation: bounce 0.5s ease; }
+
+        @keyframes bounce {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .angle-text {
+            font-size: 18px;
+            font-weight: bold;
+            fill: #34495e;
+            pointer-events: none;
+        }
+
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        button {
+            padding: 12px; border: 2px solid #ddd; border-radius: 10px;
+            background: white; font-weight: bold; cursor: pointer;
+        }
+        button:hover { border-color: var(--dark); }
+        .wrong { background: #ff7675; color: white; }
+    </style>
+</head>
+<body>
+
+    <h2>Identifique o Ângulo</h2>
+    <div class="card" id="card">
+        <div id="svg-container"></div>
+        <div class="options" id="btn-container"></div>
+    </div>
+
+<script>
+    const desafios = [30, 45, 60, 90, 120, 135, 180];
+    let atual = 0;
+
+    function render(graus, revelado = false) {
+        const container = document.getElementById('svg-container');
+        const cx = 100, cy = 100, r = 80;
+        const rad = graus * Math.PI / 180;
+        
+        // Coordenadas para o texto no "meio" do arco
+        const meioRad = (graus / 2) * Math.PI / 180;
+        const tx = cx + 45 * Math.cos(-meioRad);
+        const ty = cy + 45 * Math.sin(-meioRad);
+
+        const x2 = cx + r * Math.cos(-rad);
+        const y2 = cy + r * Math.sin(-rad);
+
+        container.innerHTML = `
+            <svg width="220" height="180" viewBox="0 0 200 150">
+                <line x1="${cx}" y1="${cy}" x2="${cx+r}" y2="${cy}" stroke="black" stroke-width="4" />
+                <line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="black" stroke-width="4" />
+                
+                <path d="M ${cx+35} ${cy} A 35 35 0 0 0 ${cx + 35*Math.cos(-rad)} ${cy + 35*Math.sin(-rad)} L ${cx} ${cy} Z" 
+                      fill="${graus === 90 ? '#eee' : '#f1c40f'}" stroke="#d4ac0d" />
+                
+                ${graus === 90 ? `<rect x="${cx}" y="${cy-15}" width="15" height="15" fill="none" stroke="black" />` : ''}
+
+                <text x="${tx}" y="${ty}" class="angle-text" text-anchor="middle" alignment-baseline="middle">
+                    ${revelado ? graus + '°' : '?'}
+                </text>
+
+                <text x="${cx - 10}" y="${cy - 10}" class="check-v" id="visto">✓</text>
+            </svg>
+        `;
+    }
+
+    function carregar() {
+        const valor = desafios[atual];
+        const card = document.getElementById('card');
+        const btns = document.getElementById('btn-container');
+        
+        card.classList.remove('correct');
+        render(valor, false);
+
+        btns.innerHTML = '';
+        const escolhas = [valor, valor + 20, valor - 15, 90].filter((v, i, a) => a.indexOf(v) === i);
+        escolhas.sort(() => Math.random() - 0.5).forEach(opt => {
+            const b = document.createElement('button');
+            b.innerText = opt + '°';
+            b.onclick = () => {
+                if(opt === valor) {
+                    card.classList.add('correct');
+                    render(valor, true);
+                    confetti({ particleCount: 100 });
+                    setTimeout(() => { atual = (atual + 1) % desafios.length; carregar(); }, 2000);
+                } else {
+                    b.classList.add('wrong');
+                }
+            };
+            btns.appendChild(b);
+        });
+    }
+
+    carregar();
 </script>
+
 
 </body>
 <br>Doar  Pix :  914e4b6a-91b4-4e50-bb7c-c610dc90407a</br>				
