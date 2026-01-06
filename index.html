@@ -470,110 +470,166 @@ repeatBtn.onclick = ()=>renderQuestion(currentQ); // Repete a pergunta atual
 setLevel('facil');
 updateStats();
 </script>
-<!DOCTYPE html>
-<html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atividade Interativa de Frações</title>
+    <title>Atividade de Frações Interativa</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --primary: #4a90e2;
+            --primary: #3498db;
             --success: #2ecc71;
-            --bg: #f8f9fa;
+            --bg: #f0f2f5;
+            --text: #2c3e50;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); padding: 20px; text-align: center; }
-        h1 { color: #333; }
-        
-        .dashboard { 
-            background: white; padding: 15px; border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px;
-            display: flex; justify-content: center; gap: 20px; align-items: center;
-            position: sticky; top: 10px; z-index: 100;
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text);
+            margin: 0; padding: 20px; 
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            position: sticky; top: 10px; z-index: 1000;
+        }
+
+        .stats {
+            display: flex; justify-content: space-around; align-items: center;
+            flex-wrap: wrap; gap: 15px;
+        }
+
+        .progress-container {
+            font-size: 1.2rem; font-weight: bold;
         }
 
         .grid-atividades { 
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
-            gap: 20px; max-width: 1000px; margin: 0 auto; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 25px; max-width: 1100px; margin: 0 auto; 
         }
 
         .fraction-card { 
-            background: white; border-radius: 12px; padding: 15px;
-            transition: transform 0.2s, box-shadow 0.2s; border: 2px solid transparent;
+            background: white; border-radius: 20px; padding: 20px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 3px solid transparent;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .fraction-card.correct { border-color: var(--success); background: #f0fff4; }
-        .fraction-card:hover { transform: translateY(-5px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
 
-        .fraction-text { font-size: 28px; font-weight: bold; margin-bottom: 10px; color: #444; }
-        .slice { fill: #fff; stroke: #333; stroke-width: 1.5; cursor: pointer; }
-        .slice.selected { fill: var(--primary); }
-
-        button { 
-            padding: 10px 20px; border: none; border-radius: 8px; 
-            cursor: pointer; font-weight: bold; transition: 0.3s;
+        /* O "V" de Acerto */
+        .fraction-card.correct::before {
+            content: "✓";
+            position: absolute; top: 10px; right: 15px;
+            background: var(--success); color: white;
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 18px;
+            animation: popIn 0.4s ease;
         }
-        .btn-clear { background: #e74c3c; color: white; }
-        .btn-report { background: var(--primary); color: white; }
+
+        .fraction-card.correct {
+            border-color: var(--success);
+            background-color: #f0fff4;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .fraction-text { font-size: 32px; font-weight: 800; margin-bottom: 15px; }
+
+        .slice { 
+            fill: #fff; stroke: #333; stroke-width: 1.5; 
+            cursor: pointer; transition: fill 0.2s; 
+        }
+        .slice:hover { fill: #f0f0f0; }
+        .slice.selected { fill: var(--primary); stroke: #1a5a8a; }
+
+        button {
+            padding: 12px 24px; border: none; border-radius: 10px;
+            font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-reset { background: #ff7675; color: white; }
+        .btn-reset:hover { background: #d63031; }
+
+        footer { margin-top: 50px; color: #95a5a6; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-    <h1>Matemática Divertida: Pintando Frações</h1>
+    <header>
+        <div class="stats">
+            <div class="progress-container">
+                Progresso: <span id="acertos">0</span> / <span id="total">0</span> fatias corretas
+            </div>
+            <button class="btn-reset" onclick="reiniciar()">Limpar Tudo</button>
+        </div>
+    </header>
 
-    <div class="dashboard">
-        <div>Progresso: <strong id="progress-text">0/0</strong></div>
-        <button class="btn-report" onclick="gerarRelatorio()">Gerar Relatório Final</button>
-        <button class="btn-clear" onclick="limparProgresso()">Reiniciar Atividade</button>
-    </div>
+    <div id="grid" class="grid-atividades"></div>
 
-    <div id="atividades-container" class="grid-atividades"></div>
+    <footer>
+        Dica: Clique nas fatias para pintar a fração indicada.
+    </footer>
 
 <script>
-    // Dados extraídos da sua imagem (Exemplos)
+    // Configuração das questões baseada na sua imagem
     const questoes = [
         { id: 1, n: 5, d: 9 }, { id: 2, n: 2, d: 6 }, { id: 3, n: 7, d: 7 },
         { id: 4, n: 1, d: 11 }, { id: 5, n: 4, d: 9 }, { id: 6, n: 9, d: 12 },
-        { id: 7, n: 1, d: 5 }, { id: 8, n: 1, d: 2 }, { id: 9, n: 3, d: 3 }
+        { id: 7, n: 1, d: 5 }, { id: 8, n: 1, d: 2 }, { id: 9, n: 2, d: 2 },
+        { id: 10, n: 7, d: 12 }, { id: 11, n: 4, d: 6 }, { id: 12, n: 3, d: 6 }
     ];
 
     function init() {
-        const container = document.getElementById('atividades-container');
-        container.innerHTML = '';
-        questoes.forEach(q => criarCard(container, q));
-        atualizarProgresso();
-    }
-
-    function criarCard(target, q) {
-        const salvo = JSON.parse(localStorage.getItem(`fracao_${q.id}`)) || [];
-        const card = document.createElement('div');
-        card.className = `fraction-card ${salvo.length === q.n ? 'correct' : ''}`;
-        card.innerHTML = `<div class="fraction-text">${q.n}/${q.d}</div>`;
-
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 100 100");
-        svg.setAttribute("width", "120");
-
-        for (let i = 0; i < q.d; i++) {
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", descreverFatia(50, 50, 45, (i * 360) / q.d, ((i + 1) * 360) / q.d));
-            path.setAttribute("class", `slice ${salvo.includes(i) ? 'selected' : ''}`);
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        document.getElementById('total').innerText = questoes.length;
+        
+        questoes.forEach(q => {
+            const salvo = JSON.parse(localStorage.getItem(`frac_${q.id}`)) || [];
+            const card = document.createElement('div');
+            card.className = `fraction-card ${salvo.length === q.n ? 'correct' : ''}`;
+            card.id = `card-${q.id}`;
             
-            path.onclick = () => {
-                path.classList.toggle('selected');
-                salvar(card, q);
-            };
-            svg.appendChild(path);
-        }
+            card.innerHTML = `<div class="fraction-text">${q.n}/${q.d}</div>`;
 
-        card.appendChild(svg);
-        target.appendChild(card);
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("viewBox", "0 0 100 100");
+            svg.setAttribute("width", "140");
+
+            for (let i = 0; i < q.d; i++) {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", drawSlice(50, 50, 45, (i * 360) / q.d, ((i + 1) * 360) / q.d));
+                path.setAttribute("class", `slice ${salvo.includes(i) ? 'selected' : ''}`);
+                
+                path.onclick = () => {
+                    path.classList.toggle('selected');
+                    atualizarEstado(card, q);
+                };
+                svg.appendChild(path);
+            }
+
+            card.appendChild(svg);
+            grid.appendChild(card);
+        });
+        contarProgresso();
     }
 
-    function descreverFatia(x, y, raio, anguloInicio, anguloFim) {
-        const start = polarToCartesian(x, y, raio, anguloFim);
-        const end = polarToCartesian(x, y, raio, anguloInicio);
-        const arcSweep = anguloFim - anguloInicio <= 180 ? "0" : "1";
-        return `M ${x} ${y} L ${start.x} ${start.y} A ${raio} ${raio} 0 ${arcSweep} 0 ${end.x} ${end.y} Z`;
+    function drawSlice(x, y, radius, startAngle, endAngle) {
+        const start = polarToCartesian(x, y, radius, endAngle);
+        const end = polarToCartesian(x, y, radius, startAngle);
+        const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+        return `M ${x} ${y} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`;
     }
 
     function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
@@ -581,34 +637,39 @@ updateStats();
         return { x: centerX + (radius * Math.cos(radians)), y: centerY + (radius * Math.sin(radians)) };
     }
 
-    function salvar(card, q) {
-        const selecionados = [];
-        card.querySelectorAll('.slice').forEach((s, i) => {
-            if (s.classList.contains('selected')) selecionados.push(i);
-        });
-        localStorage.setItem(`fracao_${q.id}`, JSON.stringify(selecionados));
-        
-        if (selecionados.length === q.n) card.classList.add('correct');
-        else card.classList.remove('correct');
-        
-        atualizarProgresso();
+    function atualizarEstado(card, q) {
+        const fatias = card.querySelectorAll('.slice');
+        const selecionadas = [];
+        fatias.forEach((s, i) => { if(s.classList.contains('selected')) selecionadas.push(i); });
+
+        localStorage.setItem(`frac_${q.id}`, JSON.stringify(selecionadas));
+
+        const eraCorreto = card.classList.contains('correct');
+        const agoraCorreto = selecionadas.length === q.n;
+
+        if (agoraCorreto) {
+            card.classList.add('correct');
+            if (!eraCorreto) checkVitoriaGeral(); 
+        } else {
+            card.classList.remove('correct');
+        }
+        contarProgresso();
     }
 
-    function atualizarProgresso() {
-        const total = questoes.length;
-        const acertos = document.querySelectorAll('.fraction-card.correct').length;
-        document.getElementById('progress-text').innerText = `${acertos} / ${total}`;
+    function contarProgresso() {
+        const totalAcertos = document.querySelectorAll('.fraction-card.correct').length;
+        document.getElementById('acertos').innerText = totalAcertos;
     }
 
-    function gerarRelatorio() {
-        const acertos = document.querySelectorAll('.fraction-card.correct').length;
-        const total = questoes.length;
-        const nota = ((acertos / total) * 10).toFixed(1);
-        alert(`--- RELATÓRIO DO ALUNO ---\n\nAcertos: ${acertos}\nTotal: ${total}\nDesempenho: ${nota}/10\n\nMostre esta tela ao professor!`);
+    function checkVitoriaGeral() {
+        const totalAcertos = document.querySelectorAll('.fraction-card.correct').length;
+        if (totalAcertos === questoes.length) {
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        }
     }
 
-    function limparProgresso() {
-        if(confirm("Deseja apagar tudo e recomeçar?")) {
+    function reiniciar() {
+        if(confirm("Deseja apagar seu progresso?")) {
             localStorage.clear();
             init();
         }
