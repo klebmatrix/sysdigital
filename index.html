@@ -812,18 +812,18 @@ updateStats();
 
 <script>
     const expressoes = [
-        { texto: "3 + 2x", calc: (x) => 3 + (2 * x) },
-        { texto: "x - 5", calc: (x) => x - 5 },
-        { texto: "-3x + 7", calc: (x) => (-3 * x) + 7 },
-        { texto: "7x - 8", calc: (x) => (7 * x) - 8 },
-        { texto: "6 - 5x", calc: (x) => 6 - (5 * x) },
-        { texto: "x - 9", calc: (x) => x - 9 },
-        { texto: "2x - 5", calc: (x) => (2 * x) - 5 },
-        { texto: "12x + 3", calc: (x) => (12 * x) + 3 },
-        { texto: "1 + 3x", calc: (x) => 1 + (3 * x) },
-        { texto: "4x - 12", calc: (x) => (4 * x) - 12 },
-        { texto: "-4 + x", calc: (x) => -4 + x },
-        { texto: "8 + 11x", calc: (x) => 8 + (11 * x) }
+        { texto: "*) 3 + 2x", calc: (x) => 3 + (2 * x) },
+        { texto: "*) x - 5", calc: (x) => x - 5 },
+        { texto: "*) -3x + 7", calc: (x) => (-3 * x) + 7 },
+        { texto: "*) 7x - 8", calc: (x) => (7 * x) - 8 },
+        { texto: "*) 6 - 5x", calc: (x) => 6 - (5 * x) },
+        { texto: "*) x - 9", calc: (x) => x - 9 },
+        { texto: "*) 2x - 5", calc: (x) => (2 * x) - 5 },
+        { texto: "*) 12x + 3", calc: (x) => (12 * x) + 3 },
+        { texto: "*) 1 + 3x", calc: (x) => 1 + (3 * x) },
+        { texto: "*) 4x - 12", calc: (x) => (4 * x) - 12 },
+        { texto: "*) -4 + x", calc: (x) => -4 + x },
+        { texto: "*) 8 + 11x", calc: (x) => 8 + (11 * x) }
     ];
 
     const container = document.getElementById('container-quadros');
@@ -862,9 +862,9 @@ updateStats();
     }
 
     // Gerar os 3 quadros solicitados
-    criarQuadro("QUADRO 01: Análise de 1 a 4", expressoes.slice(0, 4));
-    criarQuadro("QUADRO 02: Análise de 5 a 8", expressoes.slice(4, 8));
-    criarQuadro("QUADRO 03: Análise de 9 a 12", expressoes.slice(8, 12));
+    criarQuadro("QUADRO 01:  ", expressoes.slice(8, 12));
+    criarQuadro("QUADRO 02: ", expressoes.slice(8, 12));
+    criarQuadro("QUADRO 03: ", expressoes.slice(8, 12));
 </script>
 
 
