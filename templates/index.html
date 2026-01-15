@@ -3,240 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroWorkspace Professional v9.0</title>
+    <title>NeuroWorkspace - Game Board v21</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <style>
         :root {
-            --primary: #2563eb; --bg: #f8fafc; --surface: #ffffff;
-            --text: #0f172a; --border: #e2e8f0; --success: #10b981; 
-            --accent: #38bdf8; --error: #ef4444; --dark-blue: #1e293b;
+            --primary: #2563eb; --bg: #020617; --surface: #1e293b;
+            --text: #f8fafc; --border: #334155; --success: #10b981; 
+            --accent: #38bdf8; --error: #ef4444; --gold: #fbbf24; --warning: #f59e0b;
         }
 
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
-        /* Sidebar */
-        .sidebar { width: 270px; background: var(--dark-blue); color: white; padding: 20px; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; }
+        /* Navegação */
+        .sidebar { width: 80px; background: #000; display: flex; flex-direction: column; align-items: center; padding: 20px 0; border-right: 1px solid var(--border); flex-shrink: 0; }
+        .nav-dot { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; cursor: pointer; transition: 0.3s; color: #64748b; font-size: 1.2rem; border: none; background: none; }
+        .nav-dot.active { background: var(--primary); color: white; box-shadow: 0 0 15px rgba(37, 99, 235, 0.5); }
+
+        /* Painel do Dado */
+        .side-panel { width: 340px; background: var(--surface); border-right: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 30px; }
         
-        .home-link { 
-            text-decoration: none; color: var(--accent); font-weight: bold; 
-            display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-            padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);
-            transition: 0.3s;
+        .dice-3d {
+            width: 150px; height: 150px; background: linear-gradient(145deg, #ffffff, #cbd5e1);
+            border-radius: 30px; display: flex; align-items: center; justify-content: center;
+            font-size: 6rem; color: #0f172a; font-weight: 900; cursor: pointer;
+            box-shadow: 0 12px 0 #64748b, 0 20px 30px rgba(0,0,0,0.5);
+            transition: 0.1s; margin: 30px 0; border: 4px solid #fff;
         }
-        .home-link:hover { background: rgba(56, 189, 248, 0.1); transform: translateX(5px); }
-
-        .sidebar h2 { font-size: 0.85rem; opacity: 0.5; text-transform: uppercase; letter-spacing: 1.5px; margin: 20px 0 10px 0; }
+        .dice-3d.rolling { animation: shake 0.1s infinite; }
+        .dice-3d.berlinda { border-color: var(--warning); box-shadow: 0 12px 0 #b45309, 0 0 30px var(--warning); animation: pulse 1s infinite; }
+        .dice-3d.eliminated { background: #450a0a; color: var(--error); border-color: var(--error); box-shadow: 0 12px 0 #2b0606; }
         
-        .nav-item { padding: 10px 15px; border-radius: 8px; cursor: pointer; margin-bottom: 5px; transition: 0.2s; display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 0.9rem; }
-        .nav-item:hover { background: #334155; }
-        .nav-item.active { background: var(--primary); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        @keyframes shake { 0% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } 100% { transform: rotate(5deg); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        /* Main Area */
-        .main { flex-grow: 1; padding: 25px; overflow-y: auto; }
-        .tab-content { display: none; max-width: 900px; margin: 0 auto; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .rules-table { width: 100%; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 15px; font-size: 0.9rem; border: 1px solid var(--border); }
+        .rules-table div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .rules-table b { color: var(--accent); }
 
-        .card { background: var(--surface); border-radius: 16px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 20px; }
+        /* Área de Conteúdo */
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at top right, #1e293b, #020617); }
+        .tab-content { display: none; max-width: 1000px; margin: 0 auto; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Feedback Toast */
-        .toast {
-            position: fixed; top: 20px; right: 20px; background: var(--success); color: white;
-            padding: 15px 30px; border-radius: 50px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            display: none; z-index: 1000; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 24px; padding: 30px; }
+        .frac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .frac-box { background: #334155; padding: 15px; border-radius: 15px; text-align: center; border: 1px solid var(--border); }
+        .slice { fill: #0f172a; stroke: #475569; cursor: pointer; transition: 0.2s; }
+        .slice.selected { fill: var(--accent); stroke: #fff; }
 
-        /* Estilos de Fração e Ângulo */
-        .fractions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .frac-card { background: #f8fafc; border: 1px solid var(--border); padding: 15px; border-radius: 12px; text-align: center; }
-        .frac-card.complete { border-color: var(--success); background: #f0fdf4; }
-        .slice { fill: #fff; stroke: #475569; cursor: pointer; stroke-width: 1.2; }
-        .slice.selected { fill: var(--primary); stroke: #1e40af; }
-
-        /* Estilos Math Hunt e Naval */
-        .math-hunt-grid { display: grid; grid-template-columns: repeat(6, 50px); gap: 8px; justify-content: center; }
-        .cell-hunt { background: white; border: 2px solid var(--border); border-radius: 8px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
-        .cell-hunt.correct { background: var(--success) !important; color: white; }
-        .btn-opt { padding: 15px; border: 1px solid var(--border); border-radius: 10px; background: white; cursor: pointer; font-size: 1.1rem; font-weight: bold; }
-        .btn-opt:hover { border-color: var(--primary); background: #eff6ff; }
+        .btn-action { background: var(--primary); color: white; border: none; padding: 15px 25px; border-radius: 12px; font-weight: bold; cursor: pointer; width: auto; font-size: 1rem; }
     </style>
 </head>
 <body ng-controller="MainCtrl">
 
-<div id="toast" class="toast">👍 Parabéns!</div>
+    <nav class="sidebar">
+        <button class="nav-dot active" onclick="switchTab('tab-frac', this)"><i class="fa-solid fa-pizza-slice"></i></button>
+        <button class="nav-dot" onclick="switchTab('tab-naval', this)"><i class="fa-solid fa-ship"></i></button>
+        <button class="nav-dot" onclick="switchTab('tab-ang', this)"><i class="fa-solid fa-compass"></i></button>
+    </nav>
 
-<div class="sidebar">
-    <a href="https://cromosvirtual.com/" class="home-link">
-        <i class="fa-solid fa-house"></i> Cromos Virtual
-    </a>
+    <aside class="side-panel">
+        <h2 style="margin:0; color:var(--accent); letter-spacing:1px">DADO 3D</h2>
+        <div id="dice" class="dice-3d" onclick="rollDice()">1</div>
+        <div id="status-msg" style="text-align:center; font-weight:bold; color:var(--gold); min-height:4em; margin-bottom:20px; font-size: 1.1rem;">Clique no dado!</div>
 
-    <h2>Desafios Visuais</h2>
-    <div class="nav-item active" onclick="switchTab('tab-frac')"><i class="fa-solid fa-pizza-slice"></i> Frações</div>
-    <div class="nav-item" onclick="switchTab('tab-ang')"><i class="fa-solid fa-compass"></i> Ângulos</div>
-    
-    <h2>Jogos de Lógica</h2>
-    <div class="nav-item" onclick="switchTab('tab-naval')"><i class="fa-solid fa-ship"></i> Batalha Naval</div>
-    <div class="nav-item" onclick="switchTab('tab-hunt')"><i class="fa-solid fa-bullseye"></i> Math Hunt</div>
-    
-    <h2>Cálculo Mental</h2>
-    <div class="nav-item" onclick="switchTab('tab-algebra')"><i class="fa-solid fa-square-root-variable"></i> Álgebra</div>
-    
-    <div style="margin-top:auto; background: #334155; padding: 15px; border-radius: 12px; text-align: center;">
-        <small style="opacity:0.7">SCORE TOTAL</small><br>
-        <strong style="font-size: 1.4rem; color: var(--accent);">{{ globalScore }}</strong>
-    </div>
-</div>
-
-<div class="main">
-    
-    <div id="tab-frac" class="tab-content active">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-                <h3>Oficina de Frações</h3>
-                <button onclick="initFractions()" class="btn-opt" style="padding:5px 10px; font-size:0.8rem">Novo Sorteio</button>
-            </div>
-            <div id="frac-grid" class="fractions-grid"></div>
+        <div class="rules-table">
+            <div><span>🎲 <b>6</b></span> <span style="color:var(--success)">+100 pts + Joga Denovo</span></div>
+            <div><span>🎲 <b>5</b></span> <span>+70 pts + Passa</span></div>
+            <div><span>🎲 <b>4</b></span> <span>+50 pts + Fração</span></div>
+            <div><span>🎲 <b>3</b></span> <span>+30 pts + Fração</span></div>
+            <div><span>🎲 <b>2</b></span> <span>+5 pts + Fração</span></div>
+            <div><span>🎲 <b>1</b></span> <span style="color:var(--warning)">BERLINDA (Gira denovo)</span></div>
+            <div style="border:none; color:var(--error); margin-top:10px"><span>⚠️ <b>Duas vezes o 1</b></span> <b>ELIMINADO</b></div>
         </div>
-    </div>
+        <p style="margin-top: auto; opacity: 0.5; font-size: 0.8rem;">Cada jogador anota seus pontos.</p>
+    </aside>
 
-    <div id="tab-ang" class="tab-content">
-        <div class="card" style="text-align: center;">
-            <h3>Qual a medida do ângulo?</h3>
-            <div id="ang-svg" style="margin: 30px 0;"></div>
-            <div id="ang-opts" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; max-width:400px; margin:0 auto;"></div>
-        </div>
-    </div>
-
-    <div id="tab-naval" class="tab-content">
-        <div class="card">
-            <h3>Batalha Naval Matemática</h3>
-            <div id="gridNaval" style="display: grid; gap: 8px; background: #e0f2fe; padding: 15px; border-radius: 15px; margin: 0 auto; width: fit-content;"></div>
-        </div>
-    </div>
-
-    <div id="tab-hunt" class="tab-content">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-                <h2>{{ n1 }} + {{ n2 }} = ?</h2>
-                <div>Tempo: {{ tempo }}s</div>
-            </div>
-            <div class="math-hunt-grid">
-                <div ng-repeat="item in gradeHunt" class="cell-hunt" ng-class="{'correct': item.acertou}" ng-click="verificarHunt(item)">
-                    {{ item.valor }}
+    <main class="main-content">
+        <div id="tab-frac" class="tab-content active">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px">
+                    <h2>Frações Embaralhadas (12)</h2>
+                    <button class="btn-action" onclick="initFrac()">Embaralhar Peças</button>
                 </div>
+                <div id="frac-grid" class="frac-grid"></div>
             </div>
         </div>
-    </div>
 
-    <div id="tab-algebra" class="tab-content">
-        <div class="card" style="text-align: center;">
-            <h3>Equação do 1º Grau</h3>
-            <h1 id="alg-q" style="font-size: 2.5rem; margin: 20px 0;"></h1>
-            <div id="alg-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
-        </div>
-    </div>
-
-</div>
+        <div id="tab-naval" class="tab-content"><div class="card"><h2>Batalha Naval</h2><div id="grid-naval" style="display:grid; grid-template-columns:repeat(5, 60px); gap:10px; justify-content:center; margin-top:20px"></div></div></div>
+        <div id="tab-ang" class="tab-content"><div class="card" style="text-align:center"><h2>Ângulos</h2><div id="ang-svg" style="margin:40px 0"></div><div id="ang-opts" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; max-width:400px; margin:0 auto"></div></div></div>
+    </main>
 
 <script>
-    function switchTab(id) {
+    let inBerlinda = false;
+    let isEliminated = false;
+
+    function rollDice() {
+        if(isEliminated) { if(confirm("Deseja reiniciar seu turno?")) location.reload(); return; }
+        const d = document.getElementById('dice'), msg = document.getElementById('status-msg');
+        if(d.classList.contains('rolling')) return;
+        
+        d.classList.add('rolling');
+        msg.innerText = "Sorteando...";
+        let count = 0;
+        const interval = setInterval(() => {
+            d.innerText = Math.floor(Math.random()*6)+1;
+            if(count++ > 15) {
+                clearInterval(interval);
+                d.classList.remove('rolling');
+                const val = Math.floor(Math.random()*6)+1;
+                d.innerText = val;
+                processDice(val);
+            }
+        }, 60);
+    }
+
+    function processDice(val) {
+        const msg = document.getElementById('status-msg'), d = document.getElementById('dice');
+        d.classList.remove('berlinda');
+
+        // Lógica de Eliminação por 1 repetido
+        if(inBerlinda && val === 1) {
+            isEliminated = true; inBerlinda = false;
+            msg.innerHTML = "🚨 <span style='color:var(--error); font-size:1.4rem'>VOCÊ FOI ELIMINADO!</span>";
+            d.innerHTML = "❌"; d.classList.add('eliminated');
+            confetti({ colors: ['#ff0000', '#000000'], particleCount: 200 }); return;
+        }
+
+        if(inBerlinda && val !== 1) {
+            inBerlinda = false;
+            msg.innerHTML = "<span style='color:var(--success)'>UFA! SAIU DA BERLINDA.</span><br>";
+        }
+
+        // Lógica da Berlinda
+        if(val === 1) {
+            inBerlinda = true; d.classList.add('berlinda');
+            msg.innerHTML = "🔥 <span style='color:var(--warning)'>BERLINDA!</span><br>Gire denovo imediatamente. Se sair 1, você sai do jogo!";
+            return;
+        }
+
+        // Pontuação e Regras
+        const scores = {
+            6: "🏆 +100 PTS! JOGA DE NOVO.",
+            5: "✨ +70 PTS! PASSA A VEZ.",
+            4: "📈 +50 PTS! RESOLVA FRAÇÃO.",
+            3: "👍 +30 PTS! RESOLVA FRAÇÃO.",
+            2: "✏️ +5 PTS! RESOLVA FRAÇÃO."
+        };
+        msg.innerHTML += scores[val];
+        if(val === 6) confetti();
+    }
+
+    function switchTab(id, el) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        event.currentTarget.classList.add('active');
+        document.querySelectorAll('.nav-dot').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); el.classList.add('active');
     }
 
-    function triggerSuccess(pts) {
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        const t = document.getElementById('toast');
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2000);
-        const scope = angular.element(document.body).scope();
-        scope.$apply(() => scope.globalScore += pts);
-    }
-
-    // --- FRAÇÕES (ÚNICAS E DIAGONAIS) ---
-    function initFractions() {
+    function initFrac() {
         const grid = document.getElementById('frac-grid'); grid.innerHTML = '';
-        const lista = [{n:1, d:2}, {n:2, d:3}, {n:3, d:4}, {n:1, d:4}, {n:2, d:5}, {n:5, d:6}, {n:3, d:8}, {n:7, d:8}].sort(() => Math.random() - 0.5);
+        const lista = [
+            {n:1,d:2},{n:2,d:3},{n:3,d:4},{n:1,d:3},{n:1,d:4},{n:2,d:5},
+            {n:3,d:5},{n:5,d:6},{n:1,d:6},{n:4,d:8},{n:5,d:8},{n:2,d:4}
+        ].sort(()=>Math.random()-0.5);
         lista.forEach(des => {
-            const card = document.createElement('div'); card.className = 'frac-card';
-            card.innerHTML = `<div style="font-weight:bold; margin-bottom:10px">${des.n}/${des.d}</div>`;
+            const card = document.createElement('div'); card.className = 'frac-box';
+            card.innerHTML = `<h3 style="margin:0 0 10px 0; color:var(--accent)">${des.n}/${des.d}</h3>`;
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("viewBox", "0 0 100 100"); svg.setAttribute("width", "80");
+            svg.setAttribute("viewBox", "0 0 100 100"); svg.setAttribute("width", "85");
             const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            g.setAttribute("transform", `rotate(${Math.random()*360}, 50, 50)`);
             for(let j=0; j<des.d; j++) {
                 const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                p.setAttribute("d", drawSlice(50, 50, 40, (j*360)/des.d, ((j+1)*360)/des.d));
-                p.className.baseVal = "slice";
-                p.onclick = () => { 
-                    p.classList.toggle('selected');
-                    if(card.querySelectorAll('.selected').length === des.n) { card.classList.add('complete'); triggerSuccess(10); }
-                };
+                p.setAttribute("d", drawSlice(50, 50, 42, (j*360)/des.d, ((j+1)*360)/des.d));
+                p.className.baseVal = "slice"; p.onclick = () => p.classList.toggle('selected');
                 g.appendChild(p);
             }
             svg.appendChild(g); card.appendChild(svg); grid.appendChild(card);
         });
     }
 
-    function drawSlice(x, y, r, start, end) {
-        const rad = (a) => (a - 90) * Math.PI / 180.0;
-        const x1 = x + r * Math.cos(rad(start)), y1 = y + r * Math.sin(rad(start));
-        const x2 = x + r * Math.cos(rad(end)), y2 = y + r * Math.sin(rad(end));
-        return `M ${x} ${y} L ${x1} ${y1} A ${r} ${r} 0 ${end-start > 180 ? 1 : 0} 1 ${x2} ${y2} Z`;
+    function drawSlice(x,y,r,s,e){
+        const rad = (a) => (a-90)*Math.PI/180;
+        return `M ${x} ${y} L ${x+r*Math.cos(rad(s))} ${y+r*Math.sin(rad(s))} A ${r} ${r} 0 ${e-s>180?1:0} 1 ${x+r*Math.cos(rad(e))} ${y+r*Math.sin(rad(e))} Z`;
     }
 
-    // --- ÂNGULOS ---
-    function genAng() {
-        const angles = [30, 45, 60, 90, 120, 150], target = angles[Math.floor(Math.random()*angles.length)];
-        const r = (target * Math.PI) / 180, x2 = 100 + 80 * Math.cos(-r), y2 = 120 + 80 * Math.sin(-r);
-        document.getElementById('ang-svg').innerHTML = `<svg width="200" height="150" viewBox="0 0 200 150"><line x1="100" y1="120" x2="180" y2="120" stroke="#1e293b" stroke-width="4"/><line x1="100" y1="120" x2="${x2}" y2="${y2}" stroke="#1e293b" stroke-width="4"/><circle cx="100" cy="120" r="5" fill="#ef4444"/></svg>`;
-        const div = document.getElementById('ang-opts'); div.innerHTML = '';
-        [target, target+20, 90, target-15].sort(()=>Math.random()-0.5).filter((v,i,a)=>a.indexOf(v)===i).forEach(o => {
-            let b = document.createElement('button'); b.className = 'btn-opt'; b.innerText = `${o}°`;
-            b.onclick = () => { if(o===target) { triggerSuccess(15); genAng(); } };
-            div.appendChild(b);
-        });
-    }
-
-    // --- ÁLGEBRA ---
-    function genAlg() {
-        const x = Math.floor(Math.random()*9)+1, a = Math.floor(Math.random()*3)+2, b = Math.floor(Math.random()*10)+1;
-        document.getElementById('alg-q').innerText = `${a}x + ${b} = ${a*x+b}`;
-        const div = document.getElementById('alg-opts'); div.innerHTML = '';
-        [x, x+1, x-1, x+2].sort(()=>Math.random()-0.5).forEach(o => {
-            let bnt = document.createElement('button'); bnt.className = 'btn-opt'; bnt.innerText = `x = ${o}`;
-            bnt.onclick = () => { if(o===x) { triggerSuccess(20); genAlg(); } };
-            div.appendChild(bnt);
-        });
-    }
-
-    // --- NAVAL ---
-    function resetNaval() {
-        const grid = document.getElementById('gridNaval'); grid.style.gridTemplateColumns = 'repeat(5, 45px)'; grid.innerHTML = '';
-        for(let i=0; i<25; i++) {
-            let d = document.createElement('div'); d.style.width='45px'; d.style.height='45px'; d.style.background='white'; d.style.borderRadius='8px'; d.style.display='flex'; d.style.alignItems='center'; d.style.justifyContent='center'; d.style.cursor='pointer';
-            d.innerHTML = '🌊'; d.onclick = () => { d.innerHTML = '🎯'; triggerSuccess(10); }; grid.appendChild(d);
-        }
-    }
-
-    // --- ANGULAR: MATH HUNT ---
-    angular.module('NeuroApp', []).controller('MainCtrl', function($scope, $interval, $timeout) {
-        $scope.globalScore = 0; $scope.tempo = 90;
-        $scope.gerarHunt = function() {
-            $scope.n1 = Math.floor(Math.random()*10); $scope.n2 = Math.floor(Math.random()*10);
-            $scope.gradeHunt = Array.from({length:36}, () => ({valor: Math.floor(Math.random()*20), acertou: false}));
-            $scope.gradeHunt[Math.floor(Math.random()*36)].valor = $scope.n1 + $scope.n2;
-        };
-        $scope.verificarHunt = function(item) { if(item.valor === ($scope.n1 + $scope.n2)) { item.acertou = true; triggerSuccess(15); $timeout($scope.gerarHunt, 500); } };
-        $interval(() => { if($scope.tempo > 0) $scope.tempo--; }, 1000); $scope.gerarHunt();
-    });
-
-    window.onload = () => { initFractions(); genAng(); genAlg(); resetNaval(); };
+    angular.module('NeuroApp', []).controller('MainCtrl', function($scope) {});
+    window.onload = () => initFrac();
 </script>
 </body>
 </html>
