@@ -50,7 +50,7 @@
     <h2>🧠 NeuroWorkspace</h2>
     <div class="nav-item active" onclick="switchTab('tab-neuro')">🔢 Álgebra Infinita</div>
     <div class="nav-item" onclick="switchTab('tab-frac')">🍕 Oficina de Frações</div>
-    <div class="nav-item" onclick="switchTab('tab-ang')">📐 Ângulos</div>
+    <div class="nav-item" onclick="switchTab('tab-ang')">📐 Desafio de Ângulos</div>
     <div style="margin-top:auto; padding: 15px; background: #334155; border-radius: 10px; font-size: 0.8rem;">
         Score: <span id="global-score">0</span> pts
     </div>
@@ -67,14 +67,17 @@
 
     <div id="tab-frac" class="tab-content">
         <div class="card">
-            <h3>Frações (12 Desafios)</h3>
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px">
+                <h3>Frações (12 Desafios)</h3>
+                <button onclick="initFractions()" class="btn-game" style="padding:10px">Novas Frações</button>
+            </div>
             <div id="frac-grid" class="fractions-grid"></div>
         </div>
     </div>
 
     <div id="tab-ang" class="tab-content">
         <div class="card" style="text-align: center;">
-            <h3>Ângulos</h3>
+            <h3>Qual é o ângulo correto?</h3>
             <div id="ang-svg" style="margin: 30px 0;"></div>
             <div id="ang-opts" class="grid-options" style="max-width: 500px; margin: 0 auto;"></div>
         </div>
@@ -82,8 +85,8 @@
 </div>
 
 <script>
-    // Scripts JS para rodar os jogos (como fizemos antes)
     let globalScore = 0;
+
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -91,23 +94,30 @@
         event.currentTarget.classList.add('active');
     }
 
+    function updateScore(points) {
+        globalScore += points;
+        document.getElementById('global-score').innerText = globalScore;
+    }
+
+    // --- LÓGICA DE ÁLGEBRA ---
     function genAlgebra() {
         const x = Math.floor(Math.random() * 10) + 1;
         const a = Math.floor(Math.random() * 5) + 2;
         const b = Math.floor(Math.random() * 10) + 1;
-        const result = (a * x) + b;
-        document.getElementById('neuro-q').innerText = `${a}x + ${b} = ${result}`;
+        const res = (a * x) + b;
+        document.getElementById('neuro-q').innerText = `${a}x + ${b} = ${res}`;
         let opts = [x, x+1, x-1, x+2].sort(() => Math.random() - 0.5);
         const div = document.getElementById('neuro-opts');
         div.innerHTML = '';
         opts.forEach(o => {
             const btn = document.createElement('button');
             btn.className = 'btn-game'; btn.innerText = `x = ${o}`;
-            btn.onclick = () => { if(o === x) { confetti(); globalScore += 10; document.getElementById('global-score').innerText = globalScore; genAlgebra(); } };
+            btn.onclick = () => { if(o === x) { confetti(); updateScore(10); genAlgebra(); } };
             div.appendChild(btn);
         });
     }
 
+    // --- LÓGICA DE FRAÇÕES ---
     function initFractions() {
         const grid = document.getElementById('frac-grid');
         grid.innerHTML = '';
@@ -115,14 +125,17 @@
             const d = [2, 3, 4, 6, 8, 12][Math.floor(Math.random() * 6)];
             const n = Math.floor(Math.random() * (d - 1)) + 1;
             const card = document.createElement('div'); card.className = 'frac-card';
-            card.innerHTML = `<div style="font-weight:800">${n}/${d}</div>`;
+            card.innerHTML = `<div style="font-weight:800; font-size:1.2rem; color:#2563eb; margin-bottom:10px">${n}/${d}</div>`;
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", "0 0 100 100"); svg.setAttribute("width", "100");
             for(let j=0; j<d; j++) {
                 const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 p.setAttribute("d", drawSlice(50, 50, 45, (j*360)/d, ((j+1)*360)/d));
                 p.className.baseVal = "slice";
-                p.onclick = () => { p.classList.toggle('selected'); if(card.querySelectorAll('.selected').length === n) { confetti(); card.classList.add('complete'); } };
+                p.onclick = () => { 
+                    p.classList.toggle('selected'); 
+                    if(card.querySelectorAll('.selected').length === n) { confetti(); card.classList.add('complete'); updateScore(5); } 
+                };
                 svg.appendChild(p);
             }
             card.appendChild(svg); grid.appendChild(card);
@@ -137,7 +150,37 @@
         return `M ${x} ${y} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
     }
 
-    genAlgebra(); initFractions();
+    // --- LÓGICA DE ÂNGULOS (RECUPERADA) ---
+    function genAngle() {
+        const angles = [30, 45, 60, 90, 120, 150];
+        const target = angles[Math.floor(Math.random() * angles.length)];
+        const svgDiv = document.getElementById('ang-svg');
+        const rad = (target * Math.PI) / 180;
+        const x2 = 100 + 80 * Math.cos(-rad);
+        const y2 = 100 + 80 * Math.sin(-rad);
+
+        svgDiv.innerHTML = `
+            <svg width="220" height="150" viewBox="0 0 200 150">
+                <line x1="100" y1="120" x2="180" y2="120" stroke="#1e293b" stroke-width="5" />
+                <line x1="100" y1="120" x2="${x2}" y2="${y2 + 20}" stroke="#1e293b" stroke-width="5" />
+                <circle cx="100" cy="120" r="6" fill="#ef4444" />
+            </svg>
+        `;
+
+        const optDiv = document.getElementById('ang-opts');
+        optDiv.innerHTML = '';
+        [target, target + 20, target - 15, 90].sort(() => Math.random() - 0.5).filter((v,i,a) => a.indexOf(v)===i).forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'btn-game'; b.innerText = `${o}°`;
+            b.onclick = () => { if(o === target) { confetti(); updateScore(15); genAngle(); } };
+            optDiv.appendChild(b);
+        });
+    }
+
+    // Iniciar tudo
+    genAlgebra();
+    initFractions();
+    genAngle();
 </script>
 </body>
 </html>
