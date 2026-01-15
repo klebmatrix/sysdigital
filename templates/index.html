@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroWorkspace - Game Board v21</title>
+    <title>NeuroWorkspace - Desafio Total</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
@@ -11,187 +11,204 @@
         :root {
             --primary: #2563eb; --bg: #020617; --surface: #1e293b;
             --text: #f8fafc; --border: #334155; --success: #10b981; 
-            --accent: #38bdf8; --error: #ef4444; --gold: #fbbf24; --warning: #f59e0b;
+            --accent: #38bdf8; --gold: #fbbf24; --warning: #f59e0b;
         }
-
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-
-        /* Navegação */
+        
+        /* Sidebar Navigation */
         .sidebar { width: 80px; background: #000; display: flex; flex-direction: column; align-items: center; padding: 20px 0; border-right: 1px solid var(--border); flex-shrink: 0; }
-        .nav-dot { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; cursor: pointer; transition: 0.3s; color: #64748b; font-size: 1.2rem; border: none; background: none; }
-        .nav-dot.active { background: var(--primary); color: white; box-shadow: 0 0 15px rgba(37, 99, 235, 0.5); }
+        .nav-dot { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px; cursor: pointer; transition: 0.3s; color: #64748b; font-size: 1.2rem; border: none; background: none; text-decoration: none; }
+        .nav-dot.active { background: var(--primary); color: white; }
 
-        /* Painel do Dado */
-        .side-panel { width: 340px; background: var(--surface); border-right: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 30px; }
-        
-        .dice-3d {
-            width: 150px; height: 150px; background: linear-gradient(145deg, #ffffff, #cbd5e1);
-            border-radius: 30px; display: flex; align-items: center; justify-content: center;
-            font-size: 6rem; color: #0f172a; font-weight: 900; cursor: pointer;
-            box-shadow: 0 12px 0 #64748b, 0 20px 30px rgba(0,0,0,0.5);
-            transition: 0.1s; margin: 30px 0; border: 4px solid #fff;
-        }
-        .dice-3d.rolling { animation: shake 0.1s infinite; }
-        .dice-3d.berlinda { border-color: var(--warning); box-shadow: 0 12px 0 #b45309, 0 0 30px var(--warning); animation: pulse 1s infinite; }
-        .dice-3d.eliminated { background: #450a0a; color: var(--error); border-color: var(--error); box-shadow: 0 12px 0 #2b0606; }
-        
-        @keyframes shake { 0% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } 100% { transform: rotate(5deg); } }
+        /* Left Side Dice */
+        .side-panel { width: 280px; background: var(--surface); border-right: 2px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; }
+        .dice-3d { width: 110px; height: 110px; background: #fff; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: #000; font-weight: 900; cursor: pointer; margin: 15px 0; border: 4px solid #fff; box-shadow: 0 8px 0 #cbd5e1; }
+        .dice-3d.berlinda { border-color: var(--warning); box-shadow: 0 0 20px var(--warning); animation: pulse 1s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        .rules-table { width: 100%; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 15px; font-size: 0.9rem; border: 1px solid var(--border); }
-        .rules-table div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .rules-table b { color: var(--accent); }
+        /* Content Area */
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .tab-content { display: none; max-width: 850px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+        .card { background: rgba(30, 41, 59, 0.7); border: 1px solid var(--border); border-radius: 20px; padding: 25px; }
 
-        /* Área de Conteúdo */
-        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at top right, #1e293b, #020617); }
-        .tab-content { display: none; max-width: 1000px; margin: 0 auto; }
-        .tab-content.active { display: block; animation: fadeIn 0.4s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 24px; padding: 30px; }
-        .frac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .frac-box { background: #334155; padding: 15px; border-radius: 15px; text-align: center; border: 1px solid var(--border); }
-        .slice { fill: #0f172a; stroke: #475569; cursor: pointer; transition: 0.2s; }
+        /* Choice Buttons */
+        .choice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 500px; margin: 20px auto; }
+        .btn-choice { background: #334155; color: white; border: 2px solid var(--border); padding: 15px; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-choice:hover { border-color: var(--accent); background: #475569; }
+        
+        /* Grid Naval */
+        .grid-naval { display: grid; grid-template-columns: repeat(5, 55px); gap: 10px; justify-content: center; }
+        .btn-naval { width: 55px; height: 55px; background: #1e40af; border: none; border-radius: 10px; color: white; cursor: pointer; }
+        
+        .frac-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; }
+        .slice { fill: #0f172a; stroke: #475569; cursor: pointer; }
         .slice.selected { fill: var(--accent); stroke: #fff; }
-
-        .btn-action { background: var(--primary); color: white; border: none; padding: 15px 25px; border-radius: 12px; font-weight: bold; cursor: pointer; width: auto; font-size: 1rem; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 2000; }
     </style>
 </head>
 <body ng-controller="MainCtrl">
 
     <nav class="sidebar">
+        <a href="https://cromosvirtual.com/" class="nav-dot"><i class="fa-solid fa-arrow-left"></i></a>
         <button class="nav-dot active" onclick="switchTab('tab-frac', this)"><i class="fa-solid fa-pizza-slice"></i></button>
+        <button class="nav-dot" onclick="switchTab('tab-equacao', this)"><i class="fa-solid fa-calculator"></i></button>
         <button class="nav-dot" onclick="switchTab('tab-naval', this)"><i class="fa-solid fa-ship"></i></button>
         <button class="nav-dot" onclick="switchTab('tab-ang', this)"><i class="fa-solid fa-compass"></i></button>
     </nav>
 
     <aside class="side-panel">
-        <h2 style="margin:0; color:var(--accent); letter-spacing:1px">DADO 3D</h2>
+        <h3 style="color:var(--accent); margin-bottom: 5px;">DADO</h3>
         <div id="dice" class="dice-3d" onclick="rollDice()">1</div>
-        <div id="status-msg" style="text-align:center; font-weight:bold; color:var(--gold); min-height:4em; margin-bottom:20px; font-size: 1.1rem;">Clique no dado!</div>
-
-        <div class="rules-table">
-            <div><span>🎲 <b>6</b></span> <span style="color:var(--success)">+100 pts + Joga Denovo</span></div>
-            <div><span>🎲 <b>5</b></span> <span>+70 pts + Passa</span></div>
-            <div><span>🎲 <b>4</b></span> <span>+50 pts + Fração</span></div>
-            <div><span>🎲 <b>3</b></span> <span>+30 pts + Fração</span></div>
-            <div><span>🎲 <b>2</b></span> <span>+5 pts + Fração</span></div>
-            <div><span>🎲 <b>1</b></span> <span style="color:var(--warning)">BERLINDA (Gira denovo)</span></div>
-            <div style="border:none; color:var(--error); margin-top:10px"><span>⚠️ <b>Duas vezes o 1</b></span> <b>ELIMINADO</b></div>
+        <div id="status-msg" style="text-align:center; font-weight:bold; color:var(--gold); min-height:3em; font-size: 0.9rem;">Gire o dado!</div>
+        <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; font-size:0.8rem; width:100%; border: 1px solid var(--border)">
+            6: +100 | 5: +70 | 4: +50<br>
+            3: +30 | <b>2: +5 pts</b> | 1: Berlinda
         </div>
-        <p style="margin-top: auto; opacity: 0.5; font-size: 0.8rem;">Cada jogador anota seus pontos.</p>
     </aside>
 
     <main class="main-content">
         <div id="tab-frac" class="tab-content active">
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px">
-                    <h2>Frações Embaralhadas (12)</h2>
-                    <button class="btn-action" onclick="initFrac()">Embaralhar Peças</button>
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px">
+                    <h2>Frações (12 Desafios)</h2>
+                    <button onclick="initFrac()" style="padding: 10px; border-radius: 8px; cursor: pointer; background: var(--primary); color: white; border: none;">Mudar Tudo</button>
                 </div>
                 <div id="frac-grid" class="frac-grid"></div>
             </div>
         </div>
 
-        <div id="tab-naval" class="tab-content"><div class="card"><h2>Batalha Naval</h2><div id="grid-naval" style="display:grid; grid-template-columns:repeat(5, 60px); gap:10px; justify-content:center; margin-top:20px"></div></div></div>
-        <div id="tab-ang" class="tab-content"><div class="card" style="text-align:center"><h2>Ângulos</h2><div id="ang-svg" style="margin:40px 0"></div><div id="ang-opts" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; max-width:400px; margin:0 auto"></div></div></div>
+        <div id="tab-equacao" class="tab-content">
+            <div class="card" style="text-align:center">
+                <h2>O X da Questão</h2>
+                <p style="opacity:0.8">Resolva a equação e escolha o valor correto de x:</p>
+                <div id="eq-display" style="font-size:3.5rem; color:var(--accent); margin:30px 0; font-weight:bold"></div>
+                <div id="eq-opts" class="choice-grid"></div>
+            </div>
+        </div>
+
+        <div id="tab-naval" class="tab-content">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                    <h2>Batalha Naval</h2>
+                    <div>❤️ <span id="vds">10</span> | ⚓ <span id="bxs">0</span>/5</div>
+                </div>
+                <div id="grid-naval" class="grid-naval"></div>
+            </div>
+        </div>
+
+        <div id="tab-ang" class="tab-content">
+            <div class="card" style="text-align:center">
+                <h2>Identificação de Ângulos</h2>
+                <p style="opacity:0.8">Quantos graus (°) mede este ângulo?</p>
+                <div id="ang-svg" style="margin:30px 0; background:rgba(255,255,255,0.05); padding:20px; border-radius:20px"></div>
+                <div id="ang-opts" class="choice-grid"></div>
+            </div>
+        </div>
     </main>
+
+    <div id="modalNaval" class="modal">
+        <div class="card" style="width:280px; text-align:center">
+            <h3>Torre de Tiro</h3>
+            <h1 id="calc-txt" style="color:var(--accent)"></h1>
+            <input type="number" id="calc-input" style="width:100%; padding:10px; font-size:1.5rem; text-align:center; border-radius:10px; margin-bottom:15px">
+            <button onclick="processarTiro()" style="width:100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">FOGO!</button>
+        </div>
+    </div>
 
 <script>
     let inBerlinda = false;
-    let isEliminated = false;
 
+    // --- DADO ---
     function rollDice() {
-        if(isEliminated) { if(confirm("Deseja reiniciar seu turno?")) location.reload(); return; }
         const d = document.getElementById('dice'), msg = document.getElementById('status-msg');
-        if(d.classList.contains('rolling')) return;
-        
-        d.classList.add('rolling');
-        msg.innerText = "Sorteando...";
-        let count = 0;
-        const interval = setInterval(() => {
-            d.innerText = Math.floor(Math.random()*6)+1;
-            if(count++ > 15) {
-                clearInterval(interval);
-                d.classList.remove('rolling');
-                const val = Math.floor(Math.random()*6)+1;
-                d.innerText = val;
-                processDice(val);
-            }
-        }, 60);
+        d.innerText = "?";
+        setTimeout(() => {
+            const v = Math.floor(Math.random()*6)+1;
+            d.innerText = v;
+            if(inBerlinda && v === 1) { d.innerText = "❌"; msg.innerText = "ELIMINADO!"; return; }
+            if(v === 1) { inBerlinda = true; d.classList.add('berlinda'); msg.innerText = "BERLINDA! Gire denovo."; }
+            else { inBerlinda = false; d.classList.remove('berlinda'); msg.innerText = "Ganhou pontos!"; }
+        }, 500);
     }
 
-    function processDice(val) {
-        const msg = document.getElementById('status-msg'), d = document.getElementById('dice');
-        d.classList.remove('berlinda');
-
-        // Lógica de Eliminação por 1 repetido
-        if(inBerlinda && val === 1) {
-            isEliminated = true; inBerlinda = false;
-            msg.innerHTML = "🚨 <span style='color:var(--error); font-size:1.4rem'>VOCÊ FOI ELIMINADO!</span>";
-            d.innerHTML = "❌"; d.classList.add('eliminated');
-            confetti({ colors: ['#ff0000', '#000000'], particleCount: 200 }); return;
-        }
-
-        if(inBerlinda && val !== 1) {
-            inBerlinda = false;
-            msg.innerHTML = "<span style='color:var(--success)'>UFA! SAIU DA BERLINDA.</span><br>";
-        }
-
-        // Lógica da Berlinda
-        if(val === 1) {
-            inBerlinda = true; d.classList.add('berlinda');
-            msg.innerHTML = "🔥 <span style='color:var(--warning)'>BERLINDA!</span><br>Gire denovo imediatamente. Se sair 1, você sai do jogo!";
-            return;
-        }
-
-        // Pontuação e Regras
-        const scores = {
-            6: "🏆 +100 PTS! JOGA DE NOVO.",
-            5: "✨ +70 PTS! PASSA A VEZ.",
-            4: "📈 +50 PTS! RESOLVA FRAÇÃO.",
-            3: "👍 +30 PTS! RESOLVA FRAÇÃO.",
-            2: "✏️ +5 PTS! RESOLVA FRAÇÃO."
-        };
-        msg.innerHTML += scores[val];
-        if(val === 6) confetti();
-    }
-
-    function switchTab(id, el) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.nav-dot').forEach(n => n.classList.remove('active'));
-        document.getElementById(id).classList.add('active'); el.classList.add('active');
-    }
-
-    function initFrac() {
-        const grid = document.getElementById('frac-grid'); grid.innerHTML = '';
-        const lista = [
-            {n:1,d:2},{n:2,d:3},{n:3,d:4},{n:1,d:3},{n:1,d:4},{n:2,d:5},
-            {n:3,d:5},{n:5,d:6},{n:1,d:6},{n:4,d:8},{n:5,d:8},{n:2,d:4}
-        ].sort(()=>Math.random()-0.5);
-        lista.forEach(des => {
-            const card = document.createElement('div'); card.className = 'frac-box';
-            card.innerHTML = `<h3 style="margin:0 0 10px 0; color:var(--accent)">${des.n}/${des.d}</h3>`;
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("viewBox", "0 0 100 100"); svg.setAttribute("width", "85");
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            for(let j=0; j<des.d; j++) {
-                const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                p.setAttribute("d", drawSlice(50, 50, 42, (j*360)/des.d, ((j+1)*360)/des.d));
-                p.className.baseVal = "slice"; p.onclick = () => p.classList.toggle('selected');
-                g.appendChild(p);
-            }
-            svg.appendChild(g); card.appendChild(svg); grid.appendChild(card);
+    // --- EQUAÇÕES (O X DA QUESTÃO) ---
+    function generateEquation() {
+        const x = Math.floor(Math.random()*10)+1, a = Math.floor(Math.random()*4)+2, b = Math.floor(Math.random()*15)+1;
+        const res = (a*x)+b; document.getElementById('eq-display').innerText = `${a}x + ${b} = ${res}`;
+        const opts = [x, x+2, x-1, x+5].sort(()=>Math.random()-0.5);
+        const div = document.getElementById('eq-opts'); div.innerHTML = '';
+        opts.forEach(o => {
+            const btn = document.createElement('button'); btn.className='btn-choice'; btn.innerText='x = '+o;
+            btn.onclick = () => { if(o===x){ success(); generateEquation(); } };
+            div.appendChild(btn);
         });
     }
 
-    function drawSlice(x,y,r,s,e){
-        const rad = (a) => (a-90)*Math.PI/180;
-        return `M ${x} ${y} L ${x+r*Math.cos(rad(s))} ${y+r*Math.sin(rad(s))} A ${r} ${r} 0 ${e-s>180?1:0} 1 ${x+r*Math.cos(rad(e))} ${y+r*Math.sin(rad(e))} Z`;
+    // --- ÂNGULOS ---
+    function initAng() {
+        const ags = [30, 45, 60, 90, 120, 135, 180], t = ags[Math.floor(Math.random()*ags.length)];
+        const r = (t*Math.PI)/180, x = 100+70*Math.cos(-r), y = 100+70*Math.sin(-r);
+        document.getElementById('ang-svg').innerHTML = `<svg width="200" height="150"><line x1="100" y1="100" x2="180" y2="100" stroke="white" stroke-width="5"/><line x1="100" y1="100" x2="${x}" y2="${y}" stroke="white" stroke-width="5"/><circle cx="100" cy="100" r="5" fill="cyan"/></svg>`;
+        const opts = [t, t+15, 90, t-10].sort(()=>Math.random()-0.5);
+        const div = document.getElementById('ang-opts'); div.innerHTML = '';
+        opts.forEach(o => {
+            const btn = document.createElement('button'); btn.className='btn-choice'; btn.innerText=o+'°';
+            btn.onclick = () => { if(o===t){ success(); initAng(); } };
+            div.appendChild(btn);
+        });
     }
 
-    angular.module('NeuroApp', []).controller('MainCtrl', function($scope) {});
-    window.onload = () => initFrac();
+    // --- BATALHA NAVAL ---
+    let nV=10, nB=0, nMap=[], nTarget=null;
+    function initNaval() {
+        const g = document.getElementById('grid-naval'); g.innerHTML = ''; nMap=[]; nV=10; nB=0;
+        let ships = []; while(ships.length<5) { let p=Math.floor(Math.random()*25); if(!ships.includes(p)) ships.push(p); }
+        for(let i=0; i<25; i++) {
+            let a=Math.floor(Math.random()*9)+1, b=Math.floor(Math.random()*9)+1;
+            nMap.push({q:`${a} + ${b}`, r:a+b, s:ships.includes(i), h:false});
+            let d = document.createElement('button'); d.className='btn-naval'; d.innerHTML='🌊';
+            d.onclick = () => { if(nMap[i].h || nV<=0) return; nTarget=i; document.getElementById('calc-txt').innerText=nMap[i].q; document.getElementById('modalNaval').style.display='flex'; };
+            g.appendChild(d);
+        }
+    }
+    function processarTiro() {
+        const val = parseInt(document.getElementById('calc-input').value), al = nMap[nTarget], div = document.getElementById('grid-naval').children[nTarget];
+        if(val === al.r) { 
+            al.h=true; if(al.s) { div.innerHTML='💥'; nB++; success(); } else div.innerHTML='✅'; 
+            document.getElementById('modalNaval').style.display='none'; document.getElementById('calc-input').value='';
+        } else { nV--; document.getElementById('modalNaval').style.display='none'; }
+        document.getElementById('vds').innerText=nV; document.getElementById('bxs').innerText=nB;
+    }
+
+    // --- FRAÇÕES ---
+    function initFrac() {
+        const g = document.getElementById('frac-grid'); g.innerHTML = '';
+        for(let i=0; i<12; i++){
+            const d = [2,3,4,5,6,8][Math.floor(Math.random()*6)], n = Math.ceil(Math.random()*(d-1));
+            const b = document.createElement('div'); b.className='card'; b.style.padding='10px'; b.style.textAlign='center';
+            b.innerHTML = `<h4 style="margin:0">${n}/${d}</h4><svg viewBox="0 0 100 100" width="80">${drawPizza(n,d)}</svg>`;
+            g.appendChild(b);
+        }
+    }
+    function drawPizza(n,d){
+        let s = ''; for(let i=0; i<d; i++){
+            const st = (i*360)/d, en = ((i+1)*360)/d, rad = a => (a-90)*Math.PI/180;
+            const path = `M 50 50 L ${50+40*Math.cos(rad(st))} ${50+40*Math.sin(rad(st))} A 40 40 0 0 1 ${50+40*Math.cos(rad(en))} ${50+40*Math.sin(rad(en))} Z`;
+            s += `<path d="${path}" class="slice" onclick="this.classList.toggle('selected')"></path>`;
+        } return s;
+    }
+
+    function success() { confetti({ particleCount: 150, spread: 60, colors: ['#10b981', '#38bdf8'] }); }
+    function switchTab(id, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-dot').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active'); btn.classList.add('active');
+    }
+
+    angular.module('NeuroApp', []).controller('MainCtrl', function($scope){});
+    window.onload = () => { initFrac(); generateEquation(); initNaval(); initAng(); };
 </script>
 </body>
 </html>
